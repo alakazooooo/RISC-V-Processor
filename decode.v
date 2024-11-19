@@ -21,7 +21,6 @@ module decode(
 	wire [4:0] rd_next;
 	wire [4:0] rs1_next;            
 	wire [4:0] rs2_next;         
-	wire [31:0] imm_next;
 	wire [2:0] func3_next;
 	reg [31:0] imm_next;
 	reg BMS_next;
@@ -31,8 +30,8 @@ module decode(
  	wire [11:0] imm_s = {instruction[31:25], instruction[11:7]}; //store immediate
 	
 	reg LoadStore_next;
-	reg ALUScr_next;
-	reg RegWrite;
+	reg ALUSrc_next;
+	reg RegWrite_next;
 	reg [3:0] ALUControl_next;
 	
 	
@@ -44,14 +43,14 @@ module decode(
 	
 
 always @(posedge clk) begin
-	opcode <= opcode_new;
+	opcode <= opcode_next;
 	rd <= rd_next;
 	rs1 <= rs1_next;
 	rs2 <= rs2_next;
 	func3 <= func3_next;
 	imm <= imm_next;
 	LoadStore <= LoadStore_next;
-	ALUScr <= ALUSrc_next;
+	ALUSrc <= ALUSrc_next;
 	RegWrite <= RegWrite_next;
 	ALUControl <= ALUControl_next;
 	BMS <= BMS_next;
@@ -67,25 +66,27 @@ always @(*) begin
 			imm_next = 0;
 			
 			LoadStore_next = 0;
-			ALUScr_next = 0;
+			ALUSrc_next = 0;
 			RegWrite_next = 0;
-			BMS = 0;
+			BMS_next = 0;
 			
 			ALUControl_next = 4'b0000; //NONE
 		end
+		
 		7'b0110011: begin //R-type (ADD, XOR)
 			imm_next = 0;
 			
 			LoadStore_next = 0;
-			ALUScr_next = 0;
+			ALUSrc_next = 0;
 			RegWrite_next = 1;
-			BMS = 0;
+			BMS_next = 0;
 			
 			if(func3_next == 000) 
 				ALUControl_next = 4'b0010; //ADD
 			else
 				ALUControl_next = 4'b0011; //XOR
 		end
+		
 		7'b0010011: begin //i-type
 			if(func3_next == 101) //SRAI
 				imm_next = {27'b0, imm_i[4:0]}; 
@@ -93,9 +94,9 @@ always @(*) begin
 				imm_next = {{20{imm_i[11]}}, imm_i};
 				
 			LoadStore_next = 0;
-			ALUScr_next = 1;
+			ALUSrc_next = 1;
 			RegWrite_next = 1;
-			BMS = 0;
+			BMS_next = 0;
 
 			
 			if(func3_next == 000) begin
@@ -106,56 +107,61 @@ always @(*) begin
 				ALUControl_next = 4'b1011; //SRAI
 			end
 		end
+		
 		7'b0000011: begin //LOAD
 			imm_next = {{20{imm_i[11]}}, imm_i};
 			
 			LoadStore_next = 1;
-			ALUScr_next = 1;
+			ALUSrc_next = 1;
 			RegWrite_next = 1;
 			
 			if(func3 == 000) begin
-				BMS = 1;
+				BMS_next = 1;
 			end else begin
-				BMS = 0;
+				BMS_next = 0;
 			end
 			
 			ALUControl_next = 4'b0010; //ADD
 		end
+		
 		7'b0100011: begin //STORE
-			imm_next = {{20{imm_i[11]}}, imm_i};
+			imm_next = {{20{imm_s[11]}}, imm_s};
 			
 			LoadStore_next = 1;
-			ALUScr_next = 1;
+			ALUSrc_next = 1;
 			RegWrite_next = 0;
 			
 			if(func3 == 000) begin
-				BMS = 1;
+				BMS_next = 1;
 			end else begin
-				BMS = 0;
+				BMS_next = 0;
 			end
 			
 			ALUControl_next = 4'b0010; //ADD
 		end
+		
 		7'b0110111: begin //LUI
 			imm_next = {imm_u, 12'b0};
 			
 			LoadStore_next = 0;
-			ALUScr_next = 1;
+			ALUSrc_next = 1;
 			RegWrite_next = 1;
-			BMS = 0;
+			BMS_next = 0;
 			
 			ALUControl_next = 4'b0000; //NONE
 		end
+		
 		default: begin
 			imm_next = 0;
 			
 			LoadStore_next = 0;
-			ALUScr_next = 0;
+			ALUSrc_next = 0;
 			RegWrite_next = 0;
-			BMS = 0;
+			BMS_next = 0;
 			
 			ALUControl_next = 4'b0000; //NONE
 		end
+		
 	endcase
 
 end

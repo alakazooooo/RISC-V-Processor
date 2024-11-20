@@ -41,7 +41,7 @@ module TopLevel_TB(
   // Monitor important signals
   initial begin
     $monitor("Time=%0t, PC=%h, Instruction=%h, Fetch Complete=%b",
-             $time, uut.pc, uut.fetch_instruction, uut.fetch_complete);
+             $time, uut.pc-4, uut.fetch_instruction, uut.fetch_complete);
   end
 
   // Timeout to prevent infinite simulation

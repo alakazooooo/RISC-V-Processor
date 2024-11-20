@@ -38,7 +38,7 @@ module TopLevel(
       end else begin
         // Invert byte order and convert to binary
         instr_rom[instruction_count*32 +: 32] = {
-          hex_data[i+0], hex_data[i+1], hex_data[i+2], hex_data[i+3]
+		hex_data[i+3], hex_data[i+2], hex_data[i+1], hex_data[i+0]
         };
         
         instruction_count = instruction_count + 1;

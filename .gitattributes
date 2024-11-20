@@ -1,0 +1,3 @@
+* text=auto
+*.v text eol=crlf
+*.vhd text eol=crlf

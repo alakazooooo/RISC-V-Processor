@@ -10,9 +10,9 @@ module Fetch(
 );
 
     always @(posedge clk) begin
-        if (pc < (rom_size-4)) begin
+        if (pc < (rom_size-1)) begin
             // Fetch instruction from ROM
-            instruction <= instr_rom[pc +: 32];
+            instruction <= instr_rom[pc*8 +: 32];
             fetch_complete <= 1'b0;
         end else begin
             // No more instructions to fetch

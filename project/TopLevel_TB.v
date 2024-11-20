@@ -12,7 +12,7 @@ module TopLevel_TB(
   wire [31:0] a1;
 
   // Instantiate the uut
-  toplevel uut (
+  TopLevel uut (
     .clk(clk),
     .reset(reset),
     .a0(a0),

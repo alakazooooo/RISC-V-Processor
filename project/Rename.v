@@ -17,8 +17,8 @@ module Rename(
 
   output wire [5:0] physical_rd, physical_rs1, physical_rs2,
   // The values of rs1 and rs2, if they are present in the ARAT.
-  // If rs1_ready (resp. rs2_ready) is 0, its value has not been stored in the ARAT;
-  // it is either being broadcasted from the FUs on this cycle or will be broadcasted in the future.
+  // If rs1_ready (resp. rs2_ready) is 0, its value is not known by Rename yet;
+  // it should be broadcasted from the FUs on a future cycle.
   output wire rs1_ready, rs2_ready,
   output wire [31:0] rs1_value, rs2_value
 );

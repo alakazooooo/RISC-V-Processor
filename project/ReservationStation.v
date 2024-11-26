@@ -11,9 +11,9 @@ module ReservationStation (
     input wire [3:0] ALUControl,
     input wire [31:0] imm,
     input wire LoadStore,
-	input wire ALUSrc,
-	input wire RegWrite,
-	input wire BMS,
+    input wire ALUSrc,
+    input wire RegWrite,
+    input wire BMS,
     
     //forward inputs TODO (or implemented in dispatch?)
     

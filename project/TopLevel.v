@@ -1,5 +1,4 @@
-
-module TopLevel(
+module TopLevel (
   input wire clk,
   input wire reset,
   output wire [31:0] a0,
@@ -26,8 +25,8 @@ module TopLevel(
     end
 
     // Read the hex file
-    //$readmemh("r-test-hex.txt", hex_data);
-	 $readmemh("C:/Users/Public/try/r-test-hex.txt", hex_data);
+    //$readmemh("demo.txt", hex_data);
+	 $readmemh("C:/Users/Public/try/demo.txt", hex_data);
     
     instruction_count = 0;
     
@@ -38,9 +37,9 @@ module TopLevel(
       end else begin
         // Invert byte order and convert to binary
         instr_rom[instruction_count*32 +: 32] = {
-		hex_data[i+3], hex_data[i+2], hex_data[i+1], hex_data[i+0]
+          hex_data[i+3], hex_data[i+2], hex_data[i+1], hex_data[i+0]
         };
-        
+		  
         instruction_count = instruction_count + 1;
       end
     end
@@ -61,12 +60,14 @@ module TopLevel(
 
   // Update PC and run fetch on each positive clock edge until fetch_complete
   always @(posedge clk or posedge reset) begin
+  
     if (reset) begin
-      pc <= 32'h0; // Reset PC to 0
+      pc <= 32'h0;
     end else if (!fetch_complete) begin
-      // Increment PC by 4 (assuming 32-bit instructions)
+      // Increment PC by 4
       pc <= pc + 32'd4;
     end
   end
+
 
 endmodule

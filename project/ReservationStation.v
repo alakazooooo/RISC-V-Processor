@@ -6,7 +6,7 @@ module ReservationStation (
     input wire [5:0] physical_rd, physical_rs1, physical_rs2,
     input wire rs1_ready, rs2_ready,
     input wire [31:0] rs1_value, rs2_value,
-    input wire [5:0] ROB_num, //not yet in
+    input wire [5:0] ROB_num,
 
     //from decode
     input wire [3:0] ALUControl,
@@ -16,7 +16,7 @@ module ReservationStation (
     input wire RegWrite,
     input wire BMS,
     
-    //forward inputs TODO (or implemented in dispatch?)
+    //forward inputs TODO 
     
 
     // Issue interface
@@ -72,7 +72,7 @@ module ReservationStation (
 			  // Initialize other variables as needed
 		 end else begin		 
 			  // Add new instruction 
-			  if (count < RS_SIZE) begin
+			  if (count < RS_SIZE && ALUControl != 0) begin
                 free_slot = find_free_slot(valid_bitmap);
 					 $display("free slot=%0d", free_slot);
                 
@@ -86,7 +86,7 @@ module ReservationStation (
                 reservation_station[free_slot][72:41] <= rs2_value;
                 reservation_station[free_slot][40] <= rs2_ready;
                 reservation_station[free_slot][39:8] <= imm;
-                reservation_station[free_slot][7:6] <= FU_num;
+                reservation_station[free_slot][7:6] <= FU_num; //if ls
                 reservation_station[free_slot][5:0] <= ROB_num;
 					 
 					 $display("ALUControl", ALUControl);

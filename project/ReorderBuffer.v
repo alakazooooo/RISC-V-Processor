@@ -2,7 +2,7 @@
 `define OLD_TAG_PART(row) row[6:1]
 
 // This ROB is simplified compared to a full-featured speculative ROB
-// because without jumps and branches, we can just write values directly to the A-RAT.
+// because without jumps and branches, we're just writing values directly to the A-RAT.
 // So this doesn't need to control anything about the register values and
 // its main purpose is just tracking when we can return tags to the free pool.
 

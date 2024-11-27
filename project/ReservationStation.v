@@ -34,7 +34,7 @@ module ReservationStation (
     parameter ENTRY_WIDTH = 129; 
 
     // Reservation station
-    reg [ENTRY_WIDTH-1:0] reservation_station [0:RS_SIZE-1];
+    reg [ENTRY_WIDTH-1:0] reservation_station [RS_SIZE-1:0];
     reg [RS_SIZE-1:0] valid_bitmap;  // Bitmap to track valid entries
     reg [5:0] count;
 
@@ -45,9 +45,12 @@ module ReservationStation (
 		 reg [5:0] index;
 		 integer i;
 	begin
-		 index = 6'd0;
-		 for (i = 0; i <= 63; i = i + 1) begin
-			  if (!bitmap[i]) index = i[5:0];
+		 index = 6'd63; //assume RS will never be full
+		 for (i = 0; i < 64; i = i + 1) begin
+			  if (!bitmap[i] && index == 6'd63) begin //if current entry is empty and index has not been assigned yet
+					index = i[5:0];
+					$display("i=%0d", i);
+			  end
 		 end
 		 find_free_slot = index;
 	end
@@ -97,6 +100,12 @@ module ReservationStation (
 					end else begin
 						 FU_num = FU_num + 2'd1;
 					end
+					
+					
+					$display("Reservation Station Entry 0: %0b", reservation_station[0]);
+					$display("Reservation Station Entry 1: %0b", reservation_station[1]);
+					$display("Reservation Station Entry 2: %0b", reservation_station[2]);
+					$display("Reservation Station Entry 3: %0b", reservation_station[3]);
 					
 					$display("Reservation Station Entry 63: %0b", reservation_station[63]);
 					$display("Reservation Station Entry 62: %0b", reservation_station[62]);

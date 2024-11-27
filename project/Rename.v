@@ -93,7 +93,7 @@ module Rename(
 				end
 			end
 			// It's OK if no A-RAT entry gets updated; the broadcast might be for a
-			// physical register that we already overwrote in the A-RAT. In that case all
+			// physical register that we already have moved past in the A-RAT. In that case all
 			// instructions that would reference the old tag have already left Rename and
 			// are waiting in the reservation station, so when the reservation station
 			// picks up the broadcast everyone who needs the value will get it.

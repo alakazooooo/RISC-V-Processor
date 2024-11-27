@@ -26,8 +26,9 @@ module TopLevel (
 
     // Read the hex file
     //$readmemh("demo.txt", hex_data);
-	 $readmemh("C:/Users/Public/try/demo.txt", hex_data);
-    
+	 //$readmemh("C:/Users/Public/try/demo.txt", hex_data);
+    $readmemh("c:/Users/Zhang/Documents/School/ECE M116C/Honors Seminar/RISC-V-Processor/project/demo.txt", hex_data);
+	 
     instruction_count = 0;
     
     // Process the data
@@ -57,6 +58,62 @@ module TopLevel (
     .instruction(fetch_instruction),
     .fetch_complete(fetch_complete)
   );
+  
+  
+  wire [6:0] opcode;
+	wire [4:0] rd;
+	wire [4:0] rs1;            
+	wire [4:0] rs2;         
+	wire [2:0] func3;
+	wire [31:0] imm;
+	wire BMS;
+	wire LoadStore;
+	wire ALUSrc;
+	wire RegWrite;
+	wire [3:0] ALUControl;
+  
+  //decode stage
+  Decode decode (
+  .clk(clk),
+  .instruction(fetch_instruction),
+  .opcode(opcode),
+  .rd(rd),
+  .rs1(rs1),
+  .rs2(rs2),
+  .func3(func3),
+  .imm(imm),
+  .LoadStore(LoadStore),
+  .ALUSrc(ALUSrc),
+  .RegWrite(RegWrite),
+  .ALUControl(ALUControl),
+  .BMS(BMS)
+  
+  );
+  
+  
+  wire [5:0] physical_rd, physical_rs1, physical_rs2;
+  wire rs1_ready, rs2_ready;
+  wire [31:0] rs1_value, rs2_value;
+  
+  
+  //Rename stage
+  Rename rename (
+    .clk(clk),
+	 .wakeup_active(0),
+	 .wakeup_tag(0),
+	 .wakeup_value(0),
+	 .architectural_rd(rd),
+	 .architectural_rs1(rs1),
+	 .architectural_rs2(rs2),
+	 .physical_rd(physical_rd),
+	 .physical_rs1(physical_rs1),
+	 .physical_rs2(physical_rs2),
+	 .rs1_ready(rs1_ready),
+	 .rs2_ready(rs2_ready),
+	 .rs1_value(rs1_value),
+	 .rs2_value(rs2_value)
+  );
+  
 
   // Update PC and run fetch on each positive clock edge until fetch_complete
   always @(posedge clk or posedge reset) begin

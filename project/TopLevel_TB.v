@@ -45,7 +45,8 @@ module TopLevel_TB(
 
   // Timeout to prevent infinite simulation
   initial begin
-    #1000 $display("Timeout reached"); $finish;
+    #1000 $display("Timeout reached"); 
+	 $stop;
   end
 
 endmodule

@@ -25,7 +25,6 @@ module TopLevel_TB(
   end
  
   initial begin
-    // Initialize inputs
     reset = 1;
     #100 reset = 0; 
 
@@ -40,8 +39,8 @@ module TopLevel_TB(
 
   // Monitor important signals
   initial begin
-    $monitor("Time=%0t, PC=%h, Instruction=%h, Fetch Complete=%b",
-             $time, uut.pc-4, uut.fetch_instruction, uut.fetch_complete);
+    $monitor("Time=%0t, PC(after current insruction done)=%h, Instruction=%h, Fetch Complete=%b",
+             $time, uut.pc, uut.fetch_instruction, uut.fetch_complete);
   end
 
   // Timeout to prevent infinite simulation

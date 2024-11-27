@@ -32,7 +32,7 @@ module ReorderBuffer(
 	
 	assign next_rob_index = rob_tail;
 	
-	wire [5:0] rob_next_after_head = (rob_head < ROB_SIZE - 1) ? (rob_head + 1) : 0;
+	wire [5:0] rob_next_after_head = (rob_head < ROB_SIZE - 1) ? (rob_head + 6'd1) : 0;
 	
 	wire [1:0] num_retirable_entries = count_retirable_entries(rob_count, rob[rob_head], rob[rob_next_after_head]);
 	
@@ -46,8 +46,8 @@ module ReorderBuffer(
 		endcase
 	endfunction
 	
-	assign freed_tag_1 = num_retirable_entries >= 1 ? `OLD_TAG_PART(rob[rob_head]) : 0;
-	assign freed_tag_2 = num_retirable_entries >= 2 ? `OLD_TAG_PART(rob[rob_next_after_head]) : 0;
+	assign freed_tag_1 = num_retirable_entries >= 1 ? `OLD_TAG_PART(rob[rob_head]) : 6'd0;
+	assign freed_tag_2 = num_retirable_entries >= 2 ? `OLD_TAG_PART(rob[rob_next_after_head]) : 6'd0;
 	
 	always @(posedge clk) begin
 		if (wakeup_active) begin
@@ -67,7 +67,7 @@ module ReorderBuffer(
 		end
 		if (enqueue_enable) begin
 			rob[rob_tail] <= {enqueue_old_tag, 1'b0};
-			rob_tail <= (rob_tail < ROB_SIZE - 1) ? (rob_tail + 1) : 0;
+			rob_tail <= (rob_tail < ROB_SIZE - 1) ? (rob_tail + 6'd1) : 6'd0;
 		end
 		rob_count <= rob_count - num_retirable_entries + enqueue_enable;
 	end

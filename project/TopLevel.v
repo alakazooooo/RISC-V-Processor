@@ -114,6 +114,49 @@ module TopLevel (
 	 .rs2_value(rs2_value)
   );
   
+  
+  wire [5:0] ROB_num = 0;
+  
+  wire [1:0] FU_num;
+  wire load_store_valid;
+  wire [31:0] issue_rs1_value_0, issue_rs1_value_1, issue_rs1_value_2;
+  wire [31:0] issue_rs2_value_0, issue_rs2_value_1, issue_rs2_value_2;
+  wire [2:0] issue_alu_type_0, issue_alu_type_1, issue_alu_type_2;
+  wire [128:0] current_RS_entry;
+  
+  //Reservation Station:
+  ReservationStation RS (
+    .clk(clk),
+	 .reset(reset),
+	 .physical_rd(physical_rd),
+	 .physical_rs1(physical_rs1),
+	 .physical_rs2(physical_rs2),
+	 .rs1_ready(rs1_ready),
+	 .rs2_ready(rs2_ready),
+	 .rs1_value(rs1_value),
+	 .rs2_value(rs2_value),
+	 .ROB_num(ROB_num),
+	 .imm(imm),
+	 .LoadStore(LoadStore),
+	 .ALUSrc(ALUSrc),
+	 .RegWrite(RegWrite),
+	 .ALUControl(ALUControl),
+	 .BMS(BMS),
+	 
+	 .FU_num(FU_num),
+	 .load_store_valid(load_store_valid),
+	 .issue_rs1_value_0(issue_rs1_value_0),
+	 .issue_rs1_value_1(issue_rs1_value_1),
+	 .issue_rs1_value_2(issue_rs1_value_2),
+	 .issue_rs2_value_0(issue_rs2_value_0),
+	 .issue_rs2_value_1(issue_rs2_value_1),
+	 .issue_rs2_value_2(issue_rs2_value_2),
+	 .issue_alu_type_0(issue_alu_type_0),
+	 .issue_alu_type_1(issue_alu_type_1),
+	 .issue_alu_type_2(issue_alu_type_2),
+	 .current_RS_entry(current_RS_entry)
+  );
+  
 
   // Update PC and run fetch on each positive clock edge until fetch_complete
   always @(posedge clk or posedge reset) begin

@@ -106,10 +106,17 @@ module ReservationStation (
 					$display("Reservation Station Entry 1: %0b", reservation_station[1]);
 					$display("Reservation Station Entry 2: %0b", reservation_station[2]);
 					$display("Reservation Station Entry 3: %0b", reservation_station[3]);
-					
-					$display("Reservation Station Entry 63: %0b", reservation_station[63]);
-					$display("Reservation Station Entry 62: %0b", reservation_station[62]);
-					$display("Reservation Station Entry 61: %0b", reservation_station[61]);
+					$display("Reservation Station Entry 4: %0b", reservation_station[4]);
+					$display("Reservation Station Entry 5: %0b", reservation_station[5]);
+					$display("Reservation Station Entry 6: %0b", reservation_station[6]);
+					$display("Reservation Station Entry 7: %0b", reservation_station[7]);
+					$display("Reservation Station Entry 8: %0b", reservation_station[8]);
+					$display("Reservation Station Entry 9: %0b", reservation_station[9]);
+			
+			
+					//$display("Reservation Station Entry 63: %0b", reservation_station[63]);
+					//$display("Reservation Station Entry 62: %0b", reservation_station[62]);
+					//$display("Reservation Station Entry 61: %0b", reservation_station[61]);
 					
 					current_RS_entry <= reservation_station[free_slot];
 					

@@ -3,7 +3,7 @@
 
 `define assert(condition) \
 if (!(condition)) begin \
-  $fatal("ASSERTION FAILED in %m"); \
+  $fatal(1, "ASSERTION FAILED in %m"); \
 end #0
 
 module Rename_TB(clk);
@@ -12,7 +12,7 @@ module Rename_TB(clk);
 	reg wakeup_active = 0;
 	reg [5:0] wakeup_tag = 0;
 	reg [31:0] wakeup_value = 0;
-	reg [4:0] architectural_rd, architectural_rs1, architectural_rs2;
+	reg [4:0] architectural_rd = 0, architectural_rs1 = 0, architectural_rs2 = 0;
 	
 	wire [5:0] physical_rd, physical_rs1, physical_rs2;
 	wire rs1_ready, rs2_ready;
@@ -23,6 +23,8 @@ module Rename_TB(clk);
 		.wakeup_active(wakeup_active),
 		.wakeup_tag(wakeup_tag),
 		.wakeup_value(wakeup_value),
+		.freed_tag_1(6'd0),
+		.freed_tag_2(6'd0),
 		.architectural_rd(architectural_rd),
 		.architectural_rs1(architectural_rs1),
 		.architectural_rs2(architectural_rs2),

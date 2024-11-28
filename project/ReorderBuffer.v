@@ -15,7 +15,7 @@ module ReorderBuffer(
   input [5:0] wakeup_rob_index,
   
   // The index where the next entry in the ROB will be located.
-  output wire [6:0] next_rob_index,
+  output wire [5:0] next_rob_index,
   // For returning between zero and two tags to Rename's free pool.
   // These will be 0 if not applicable, because Rename should ignore tag p0 being freed anyway.
   output wire [5:0] freed_tag_1, freed_tag_2

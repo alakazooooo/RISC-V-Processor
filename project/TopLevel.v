@@ -99,9 +99,12 @@ module TopLevel (
   //Rename stage
   Rename rename (
     .clk(clk),
+	 .reset(reset),
 	 .wakeup_active(0),
 	 .wakeup_tag(0),
 	 .wakeup_value(0),
+	 .freed_tag_1(0),
+	 .freed_tag_2(0),
 	 .architectural_rd(rd),
 	 .architectural_rs1(rs1),
 	 .architectural_rs2(rs2),

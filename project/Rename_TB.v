@@ -9,6 +9,7 @@ end #0
 module Rename_TB(clk);
 	
 	output reg clk = 0;
+	reg reset = 0;
 	reg wakeup_active = 0;
 	reg [5:0] wakeup_tag = 0;
 	reg [31:0] wakeup_value = 0;
@@ -20,6 +21,7 @@ module Rename_TB(clk);
 	
 	Rename uut(
 		.clk(clk),
+		.reset(reset),
 		.wakeup_active(wakeup_active),
 		.wakeup_tag(wakeup_tag),
 		.wakeup_value(wakeup_value),
@@ -40,6 +42,11 @@ module Rename_TB(clk);
 	initial begin : tb
 		reg [5:0] first_x1_tag;
 		reg [5:0] second_x1_tag;
+		
+		reset = 1;
+		#1;
+		reset = 0;
+		#1;
 	
 		clk = 0;
 		#1;

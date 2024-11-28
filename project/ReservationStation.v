@@ -88,8 +88,7 @@ module ReservationStation (
                 reservation_station[free_slot][39:8] <= imm;
                 reservation_station[free_slot][7:6] <= FU_num; //if ls
                 reservation_station[free_slot][5:0] <= ROB_num;
-					 
-					 $display("ALUControl", ALUControl);
+					
 
                 valid_bitmap[free_slot] <= 1'b1;  // Mark the entry as valid
                 count <= count + 1;
@@ -102,6 +101,17 @@ module ReservationStation (
 					end
 					
 					
+					
+			
+			
+					//$display("Reservation Station Entry 63: %0b", reservation_station[63]);
+					//$display("Reservation Station Entry 62: %0b", reservation_station[62]);
+					//$display("Reservation Station Entry 61: %0b", reservation_station[61]);
+					
+					current_RS_entry <= reservation_station[free_slot];
+					
+			  end
+					$display("ALUControl", ALUControl);
 					$display("Reservation Station Entry 0: %0b", reservation_station[0]);
 					$display("Reservation Station Entry 1: %0b", reservation_station[1]);
 					$display("Reservation Station Entry 2: %0b", reservation_station[2]);
@@ -112,15 +122,6 @@ module ReservationStation (
 					$display("Reservation Station Entry 7: %0b", reservation_station[7]);
 					$display("Reservation Station Entry 8: %0b", reservation_station[8]);
 					$display("Reservation Station Entry 9: %0b", reservation_station[9]);
-			
-			
-					//$display("Reservation Station Entry 63: %0b", reservation_station[63]);
-					//$display("Reservation Station Entry 62: %0b", reservation_station[62]);
-					//$display("Reservation Station Entry 61: %0b", reservation_station[61]);
-					
-					current_RS_entry <= reservation_station[free_slot];
-					
-			  end
 
 			  // TODO Remove issued instructions
 			  

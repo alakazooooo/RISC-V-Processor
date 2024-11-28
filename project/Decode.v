@@ -168,7 +168,7 @@ always @(*) begin
 			RegWrite_next = 1;
 			BMS_next = 0;
 			
-			ALUControl_next = 4'b0000; //NONE
+			ALUControl_next = 4'b1111; //NONE
 		end
 		
 		default: begin

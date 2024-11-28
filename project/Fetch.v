@@ -13,15 +13,12 @@ module Fetch (
 			instruction <= 32'b0;
 			fetch_complete <= 1'b0;
 		end else if (pc < rom_size) begin
-			if (pc < (rom_size - 5)) begin
-				// Fetch instruction from ROM
-				instruction <= instr_rom[pc * 8 +: 32];
-				fetch_complete <= 1'b0;
-			end else begin
-				// Last instruction to fetch or out of bounds
-				instruction <= instr_rom[pc * 8 +: 32];
-				fetch_complete <= 1'b1;
-			end
+			// Fetch instruction from ROM
+			instruction <= instr_rom[pc * 8 +: 32];
+			fetch_complete <= 1'b0;
+		end else begin
+			instruction <= 32'b0;
+			fetch_complete <= 1'b1;
 		end
 	end
 

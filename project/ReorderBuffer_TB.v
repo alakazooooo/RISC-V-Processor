@@ -26,8 +26,8 @@ module ReorderBuffer_TB(clk);
 		.freed_tag_1(freed_tag_1), .freed_tag_2(freed_tag_2)
 	);
 	
-	initial begin
-		reg [5:0] rob_indices [4];
+	initial begin : tb
+		reg [5:0] rob_indices [3:0];
 		integer i, j;
 	
 		clk = 0;
@@ -60,16 +60,63 @@ module ReorderBuffer_TB(clk);
 		end
 		
 		enqueue_enable = 0;
+		wakeup_active = 1;
 		wakeup_rob_index = rob_indices[1];
 		clk = 1;
 		#1;
-		
-		// TODO assert no frees
+		// We woke up the second ROB entry, so the ROB shouldn't retire
+		// anything because the first entry is still not woken up.
+		`assert(freed_tag_1 == 0 && freed_tag_2 == 0);
 		clk = 0;
 		#1;
 		
-		// Entries can only be retired in order.
-		// TODO wakeup 3, and assert no frees, then 0 + two frees, then nothing + one free, then nothing + no frees, then enqueue, then 4 + one free
+		wakeup_active = 1;
+		wakeup_rob_index = rob_indices[2];
+		clk = 1;
+		#1;
+		// Same thing. The first entry is still not woken up.
+		`assert(freed_tag_1 == 0 && freed_tag_2 == 0);
+		clk = 0;
+		#1;
+		
+		wakeup_active = 1;
+		wakeup_rob_index = rob_indices[0];
+		clk = 1;
+		#1;
+		// Now we have woken up entries 0, 1 and 2 so the ROB should free the tags of
+		// both 0 and 1.
+		`assert(freed_tag_1 == 1 && freed_tag_2 == 2);
+		clk = 0;
+		#1;
+		
+		wakeup_active = 0;
+		clk = 1;
+		#1;
+		// And on this cycle the ROB should free the tag of 2.
+		`assert((freed_tag_1 == 3 && freed_tag_2 == 0) || (freed_tag_1 == 0 && freed_tag_2 == 3));
+		clk = 0;
+		#1;
+		
+		clk = 1;
+		#1;
+		`assert(freed_tag_1 == 0 && freed_tag_2 == 0);
+		clk = 0;
+		#1;
+		
+		wakeup_active = 1;
+		wakeup_rob_index = rob_indices[3];
+		clk = 1;
+		#1;
+		`assert((freed_tag_1 == 4 && freed_tag_2 == 0) || (freed_tag_1 == 0 && freed_tag_2 == 4));
+		clk = 0;
+		#1;
+		
+		wakeup_active = 0;
+		clk = 1;
+		#1;
+		`assert(freed_tag_1 == 0 && freed_tag_2 == 0);
+		clk = 0;
+		#1;
 		
 		$stop;
 	end

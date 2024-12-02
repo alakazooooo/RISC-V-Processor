@@ -32,18 +32,23 @@ module ReorderBuffer(
 	
 	assign next_rob_index = rob_tail;
 	
-	wire [5:0] rob_next_after_head = (rob_head < ROB_SIZE - 1) ? (rob_head + 6'd1) : 0;
+	wire [5:0] rob_next_after_head = (rob_head < ROB_SIZE - 1) ? (rob_head + 6'd1) : 6'd0;
 	
 	wire [1:0] num_retirable_entries = count_retirable_entries(rob_count, rob[rob_head], rob[rob_next_after_head]);
 	
 	// Defining a function is a workaround to use case to assign to a wire.
 	// https://stackoverflow.com/questions/50766295/using-verilog-case-statement-with-continuous-assignment
 	function [1:0] count_retirable_entries(input [6:0] count, input [6+1-1:0] first, second);
+	begin
+		$display("count, first, second: %0d, %0d, %0d", count, first, second);
 		case (count)
 			7'd0: count_retirable_entries = 0;
 			7'd1: count_retirable_entries = `COMPLETED_PART(first);
-			default: count_retirable_entries = `COMPLETED_PART(first) + `COMPLETED_PART(second);
+			// Entries are retired in order, so the first element must be completed for the second element to be considered.
+			default: count_retirable_entries = `COMPLETED_PART(first) + (`COMPLETED_PART(first) && `COMPLETED_PART(second));
 		endcase
+		$display("Retirable entries: %0d", count_retirable_entries);
+	end
 	endfunction
 	
 	assign freed_tag_1 = num_retirable_entries >= 1 ? `OLD_TAG_PART(rob[rob_head]) : 6'd0;
@@ -51,13 +56,15 @@ module ReorderBuffer(
 	
 	always @(posedge clk) begin
 		if (wakeup_active) begin
-			if (rob_head <= rob_tail) begin
-				if (!(rob_head <= wakeup_rob_index && wakeup_rob_index < rob_tail)) begin
-					$fatal("Got a wakeup at a ROB index outside of the queue bounds (case 1)");
-				end
-			end else begin
-				if (rob_tail <= wakeup_rob_index && wakeup_rob_index < rob_head) begin
-					$fatal("Got a wakeup at a ROB index outside of the queue bounds (case 2)");
+			if (rob_count < ROB_SIZE) begin
+				if (rob_head <= rob_tail) begin
+					if (!(rob_head <= wakeup_rob_index && wakeup_rob_index < rob_tail)) begin
+						$fatal("Got a wakeup at a ROB index outside of the queue bounds (case 1)");
+					end
+				end else begin
+					if (rob_tail <= wakeup_rob_index && wakeup_rob_index < rob_head) begin
+						$fatal("Got a wakeup at a ROB index outside of the queue bounds (case 2)");
+					end
 				end
 			end
 			if (`COMPLETED_PART(rob[wakeup_rob_index])) begin

@@ -34,20 +34,6 @@ module Rename(
 	// where "is ready" means whether the value is up-to-date or if it's still pending broadcast from a FU.
 	reg [6+32+1-1:0] arat [31:0];
 	
-	always @(posedge reset) begin : reset_free_pool_and_arat
-	   reg [5:0] i;
-		reg [5:0] j;
-		for (i = 0; i < FREE_POOL_SIZE; i = i + 6'd1) begin
-			// The initial A-RAT maps xN to pN for all 0 <= N <= 31, so the free pool starts at 32.
-			free_pool[i] = NUM_ARCHITECTURAL_REGISTERS + i;
-		end
-		free_pool_count = FREE_POOL_SIZE;
-		
-		for (j = 0; j < NUM_ARCHITECTURAL_REGISTERS; j = j + 6'd1) begin
-			arat[j] = {j, 32'd0, 1'b1};
-		end
-	end
-	
 	assign physical_rs1 = `PHYSICAL_REGISTER_PART(arat[architectural_rs1]);
 	assign physical_rs2 = `PHYSICAL_REGISTER_PART(arat[architectural_rs2]);
 	assign physical_rd = architectural_rd == 0 ? 6'd0 : free_pool[free_pool_count - 6'd1];

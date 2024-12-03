@@ -87,14 +87,12 @@ module TopLevel (
   .RegWrite(RegWrite),
   .ALUControl(ALUControl),
   .BMS(BMS)
-  
   );
   
-  
+  wire [5:0] freed_tag_1, freed_tag_2;
   wire [5:0] physical_rd, physical_rs1, physical_rs2;
   wire rs1_ready, rs2_ready;
   wire [31:0] rs1_value, rs2_value;
-  
   
   //Rename stage
   Rename rename (
@@ -103,8 +101,8 @@ module TopLevel (
 	 .wakeup_active(0),
 	 .wakeup_tag(0),
 	 .wakeup_value(0),
-	 .freed_tag_1(0),
-	 .freed_tag_2(0),
+	 .freed_tag_1(freed_tag_1),
+	 .freed_tag_2(freed_tag_2),
 	 .architectural_rd(rd),
 	 .architectural_rs1(rs1),
 	 .architectural_rs2(rs2),
@@ -118,7 +116,7 @@ module TopLevel (
   );
   
   
-  wire [5:0] ROB_num = 0;
+  wire [5:0] ROB_num;
   
   wire [1:0] FU_num;
   wire load_store_valid;
@@ -160,7 +158,19 @@ module TopLevel (
 	 .current_RS_entry(current_RS_entry)
   );
   
+  // Reorder buffer:
+  ReorderBuffer rob(
+	 .clk(clk),
+	 .enqueue_enable(0),
+	 .enqueue_old_tag(0),
+	 .wakeup_active(0),
+	 .wakeup_rob_index(0),
 
+    .next_rob_index(ROB_num),
+	 .freed_tag_1(freed_tag_1),
+	 .freed_tag_2(freed_tag_2)
+  );
+  
   // Update PC and run fetch on each positive clock edge until fetch_complete
   always @(posedge clk or posedge reset) begin
   

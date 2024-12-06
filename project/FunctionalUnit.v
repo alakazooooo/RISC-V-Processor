@@ -33,7 +33,7 @@ module FunctionalUnit(
 	reg [31:0] computation_result;
 	
 	// It's OK to do this unconditionally since the values only matter when
-	// wakeup_active (lsq_wakeup_active for some) is 1.
+	// wakeup_active(/lsq_wakeup_active) is 1.
 	assign wakeup_rob_index = internal_rob_index;
 	assign wakeup_tag = internal_tag_to_output;
 	assign wakeup_value = computation_result;

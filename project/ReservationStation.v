@@ -43,7 +43,7 @@ module ReservationStation (
     reg [5:0] free_slot;
     reg [ENTRY_WIDTH-1:0] entry;
     reg [1:0] issue_counter;
-    reg [2:0] fu_ready;
+    reg [2:0] fu_ready; //problems?
     reg entry_fu_ready;
     reg [2:0] issue_FU_valid;
 
@@ -72,14 +72,18 @@ module ReservationStation (
             {FU_num, count, valid_bitmap, issue_counter} <= 0;
             {issue_FU1_valid, issue_FU2_valid, issue_FU3_valid} <= 0;
             issue_FU_valid <= 0;
+				fu_ready <= 3'b000;
             
             for (j = 0; j < RS_SIZE; j = j + 1) begin
                 reservation_station[j] <= 0;
             end
 
         end else begin
-            
-            fu_ready = {FU3_ready, FU2_ready, FU1_ready};
+				// debug
+            $display("Time=%0t Reset=%0b Count=%0d", $time, reset, count);
+				$display("FU Status: FU1=%0b FU2=%0b FU3=%0b", FU1_ready, FU2_ready, FU3_ready);
+				
+            fu_ready <= {FU3_ready, FU2_ready, FU1_ready};
 
             // Add new instruction
             if (count < RS_SIZE && ALUControl != 0) begin
@@ -126,6 +130,14 @@ module ReservationStation (
 
                 valid_bitmap[free_slot] <= 1'b1;
                 count <= count + 1;
+					 
+					 
+					 $display("Adding new instruction:");
+					 $display("  Free slot: %0d", free_slot);
+					 $display("  ALUControl: %0h", ALUControl);
+					 $display("  FU_num: %0d", FU_num);
+					 $display("  RS1: tag=%0d value=%0h ready=%0b", physical_rs1, rs1_value, rs1_ready);
+					 $display("  RS2: tag=%0d value=%0h ready=%0b", physical_rs2, rs2_value, rs2_ready);
             end
 
             // Issue logic
@@ -147,8 +159,8 @@ module ReservationStation (
                             reservation_station[k] <= 0; // delete issued instructions
                             valid_bitmap[k] <= 0;
                             count <= count - 1;
-                            fu_ready[entry[7:6]] <= 0; //newly issued instruction FU no longer ready
                             issue_FU_valid[entry[7:6]] <= 1; //indicate new FU execution needed
+									 fu_ready[entry[7:6]] <= 0; //newly issued instruction FU no longer ready
                             issue_counter <= issue_counter + 1;
                         end
                         2'd1: begin
@@ -184,6 +196,45 @@ module ReservationStation (
 
             {issue_FU1_valid, issue_FU2_valid, issue_FU3_valid} <= issue_FU_valid;
             // 0 doens't necessarily means it's free, 1 means it should be used next CC  
+				
+				// debug
+				  $display("\n=== Output Signals at Time %0t ===", $time);
+				  
+				  $display("\nFunctional Unit Status:");
+				  $display("  FU_num: %0d", FU_num);
+				  $display("  FU Valid: FU1=%b FU2=%b FU3=%b", issue_FU1_valid, issue_FU2_valid, issue_FU3_valid);
+				  
+				  $display("\nIssue Slot 0:");
+				  $display("  Load/Store: %b", issue_0_is_LS);
+				  $display("  RD Tag: %0d", issue_0_rd_tag);
+				  $display("  ALU Src: %b", issue_0_alusrc);
+				  $display("  ROB Num: %0d", issue_0_rob_num);
+				  $display("  RS1 Value: %h", issue_0_rs1_val);
+				  $display("  RS2 Value: %h", issue_0_rs2_val);
+				  $display("  Immediate: %h", issue_0_imm);
+				  $display("  ALU Type: %h", issue_0_alu_type);
+				  
+				  $display("\nIssue Slot 1:");
+				  $display("  Load/Store: %b", issue_1_is_LS);
+				  $display("  RD Tag: %0d", issue_1_rd_tag);
+				  $display("  ALU Src: %b", issue_1_alusrc);
+				  $display("  ROB Num: %0d", issue_1_rob_num);
+				  $display("  RS1 Value: %h", issue_1_rs1_val);
+				  $display("  RS2 Value: %h", issue_1_rs2_val);
+				  $display("  Immediate: %h", issue_1_imm);
+				  $display("  ALU Type: %h", issue_1_alu_type);
+				  
+				  $display("\nIssue Slot 2:");
+				  $display("  Load/Store: %b", issue_2_is_LS);
+				  $display("  RD Tag: %0d", issue_2_rd_tag);
+				  $display("  ALU Src: %b", issue_2_alusrc);
+				  $display("  ROB Num: %0d", issue_2_rob_num);
+				  $display("  RS1 Value: %h", issue_2_rs1_val);
+				  $display("  RS2 Value: %h", issue_2_rs2_val);
+				  $display("  Immediate: %h", issue_2_imm);
+				  $display("  ALU Type: %h", issue_2_alu_type);
+				  
+				  $display("\n==============================\n");
 			  
         end
     end

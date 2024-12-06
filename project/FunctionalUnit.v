@@ -40,14 +40,6 @@ module FunctionalUnit(
 	assign lsq_wakeup_rob_index = internal_rob_index;
 	assign lsq_wakeup_value = computation_result;
 	
-	// wakeup_active(/lsq_wakeup_active) goes high for only the cycle that it completes.
-	// I considered going high until a new operation arrives, but that feels potentially problematic
-	// if there's a "forgotten" FU broadcasting really old tags to the rest of the system.
-	wire waking_up_something = has_operation && cycles_waited_so_far == cycles_for_operation(internal_ALUControl);
-	assign wakeup_active = waking_up_something && !internal_is_for_lsq;
-	assign lsq_wakeup_active = waking_up_something && internal_is_for_lsq;
-	assign is_available = !has_operation || waking_up_something;
-	
 	// These are used to simulate different operations taking different amounts of time
 	// (essentially testing that the rest of the system handles that robustly).
 	reg [2:0] cycles_waited_so_far;
@@ -62,13 +54,18 @@ module FunctionalUnit(
 			4'b1011: cycles_for_operation = 4; // SRA (right arithmetic shift)
 			4'b1111: cycles_for_operation = 0; // also NONE
 			// TODO code for LUI
-			default: begin
-				$fatal("Invalid ALUControl");
-				cycles_for_operation = 0;
-			end
+			default: cycles_for_operation = 0;
 		endcase
 	end
 	endfunction
+	
+	// wakeup_active(/lsq_wakeup_active) goes high for only the cycle that it completes.
+	// I considered going high until a new operation arrives, but that feels potentially problematic
+	// if there's a "forgotten" FU broadcasting really old tags to the rest of the system.
+	wire waking_up_something = has_operation && cycles_waited_so_far == cycles_for_operation(internal_ALUControl);
+	assign wakeup_active = waking_up_something && !internal_is_for_lsq;
+	assign lsq_wakeup_active = waking_up_something && internal_is_for_lsq;
+	assign is_available = !has_operation || waking_up_something;
 	
 	function [31:0] compute_operation;
 		input [3:0] ALUControl;
@@ -83,10 +80,7 @@ module FunctionalUnit(
 			4'b1011: compute_operation = lhs >>> rhs; // SRA (right arithmetic shift)
 			4'b1111: compute_operation = -1; // also NONE
 			// TODO code for LUI
-			default: begin
-				$fatal("Invalid ALUControl");
-				compute_operation = 01;
-			end
+			default: compute_operation = -1;
 		endcase
 	end
 	endfunction
@@ -129,5 +123,22 @@ module FunctionalUnit(
 				computation_result <= compute_operation(internal_ALUControl, internal_rs1_value, internal_ALUSrc ? internal_imm : internal_rs2_value);
 			end
 		end
+	end
+	
+	// Invariants:
+	//  - ALUControl must encode a valid operation.
+	always @(posedge clk) begin : check_invariants
+		case (ALUControl)
+			4'b0000: ; // NONE
+			4'b0001: ; // OR
+			4'b0010: ; // ADD
+			4'b0011: ; // XOR
+			4'b1011: ; // SRA (right arithmetic shift)
+			4'b1111: ; // also NONE
+			// TODO code for LUI
+			default: begin
+				$fatal("Invalid ALUControl");
+			end
+		endcase
 	end
 endmodule

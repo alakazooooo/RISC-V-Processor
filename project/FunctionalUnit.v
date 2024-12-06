@@ -43,10 +43,10 @@ module FunctionalUnit(
 	// wakeup_active(/lsq_wakeup_active) goes high for only the cycle that it completes.
 	// I considered going high until a new operation arrives, but that feels potentially problematic
 	// if there's a "forgotten" FU broadcasting really old tags to the rest of the system.
-	wire should_wakeup = has_operation && cycles_waited_so_far == cycles_for_operation(internal_ALUControl);
-	assign wakeup_active = should_wakeup && !internal_is_for_lsq;
-	assign lsq_wakeup_active = should_wakeup && internal_is_for_lsq;
-	assign is_available = !has_operation || cycles_waited_so_far == cycles_for_operation(internal_ALUControl);
+	wire waking_up_something = has_operation && cycles_waited_so_far == cycles_for_operation(internal_ALUControl);
+	assign wakeup_active = waking_up_something && !internal_is_for_lsq;
+	assign lsq_wakeup_active = waking_up_something && internal_is_for_lsq;
+	assign is_available = !has_operation || waking_up_something;
 	
 	// These are used to simulate different operations taking different amounts of time
 	// (essentially testing that the rest of the system handles that robustly).
@@ -55,16 +55,16 @@ module FunctionalUnit(
 		input [3:0] ALUControl;
 	begin
 		case (ALUControl)
-			4'b0000: cycles_for_operation = 1; // NONE
+			4'b0000: cycles_for_operation = 0; // NONE
 			4'b0001: cycles_for_operation = 1; // OR
 			4'b0010: cycles_for_operation = 2; // ADD
 			4'b0011: cycles_for_operation = 1; // XOR
 			4'b1011: cycles_for_operation = 4; // SRA (right arithmetic shift)
-			4'b1111: cycles_for_operation = 1; // also NONE
+			4'b1111: cycles_for_operation = 0; // also NONE
 			// TODO code for LUI
 			default: begin
 				$fatal("Invalid ALUControl");
-				cycles_for_operation = 1;
+				cycles_for_operation = 0;
 			end
 		endcase
 	end
@@ -118,6 +118,7 @@ module FunctionalUnit(
 				internal_tag_to_output <= tag_to_output;
 				internal_rob_index <= rob_index;
 				cycles_waited_so_far <= 0;
+				has_operation <= 1;
 			end else if (has_operation) begin
 				// Processing logic
 				if (cycles_waited_so_far < cycles_for_operation(internal_ALUControl)) begin

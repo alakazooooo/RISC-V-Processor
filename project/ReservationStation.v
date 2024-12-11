@@ -19,9 +19,9 @@ module ReservationStation (
     //from FU
     input wire FU1_ready, FU2_ready, FU3_ready,
 
-    //forward inputs and wakeup TODO 
-	 input wire [5:0] wakeup_tag,
-	 input wire [31:0] wakeup_val,
+    //forward inputs and wakeup
+    input wire [5:0] wakeup_tag,
+    input wire [31:0] wakeup_val,
 
     // Issue interface
     output reg [1:0] FU_num,

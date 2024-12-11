@@ -20,6 +20,8 @@ module ReservationStation (
     input wire FU1_ready, FU2_ready, FU3_ready,
 
     //forward inputs and wakeup TODO 
+	 input wire [5:0] wakeup_tag,
+	 input wire [31:0] wakeup_val,
 
     // Issue interface
     output reg [1:0] FU_num,
@@ -47,7 +49,7 @@ module ReservationStation (
     reg entry_fu_ready;
     reg [2:0] issue_FU_valid;
 
-    integer i, j, k;
+    integer i, j, k, m;
 
     // Find first empty slot in reservation station
 	function [5:0] find_free_slot;
@@ -105,13 +107,13 @@ module ReservationStation (
                 // For each current FU, try to assign to next sequential FU, unless it's occupied
                 // If next FU not ready, try the one after, if none ready, assign the next one
                 case (FU_num)
-                    2'd0: FU_num <= (FU2_ready) ? 2'd1 : (FU3_ready) ? 2'd2 : (FU1_ready) ? 2'd0 : 2'd1;
-                    2'd1: FU_num <= (FU3_ready) ? 2'd2 : (FU1_ready) ? 2'd0 : (FU2_ready) ? 2'd1 : 2'd2;
-                    2'd2: FU_num <= (FU1_ready) ? 2'd0 : (FU2_ready) ? 2'd1 : (FU3_ready) ? 2'd2 : 2'd0;
+                    2'd0: FU_num = (FU2_ready) ? 2'd1 : (FU3_ready) ? 2'd2 : (FU1_ready) ? 2'd0 : 2'd1;
+                    2'd1: FU_num = (FU3_ready) ? 2'd2 : (FU1_ready) ? 2'd0 : (FU2_ready) ? 2'd1 : 2'd2;
+                    2'd2: FU_num = (FU1_ready) ? 2'd0 : (FU2_ready) ? 2'd1 : (FU3_ready) ? 2'd2 : 2'd0;
                 endcase
 
                 // Create new reservation station entry
-                reservation_station[free_slot] <= {
+                reservation_station[free_slot] = {
                     1'b1,           // valid 130
                     LoadStore,      // is load/store 129
                     ALUSrc,         // alu_src 128
@@ -128,20 +130,52 @@ module ReservationStation (
                     ROB_num         // ROB_num 5:0
                 };
 
-                valid_bitmap[free_slot] <= 1'b1;
-                count <= count + 1;
+                valid_bitmap[free_slot] = 1'b1;
+                count = count + 1;	 
 					 
-					 
-					 $display("Adding new instruction:");
-					 $display("  Free slot: %0d", free_slot);
-					 $display("  ALUControl: %0h", ALUControl);
-					 $display("  FU_num: %0d", FU_num);
-					 $display("  RS1: tag=%0d value=%0h ready=%0b", physical_rs1, rs1_value, rs1_ready);
-					 $display("  RS2: tag=%0d value=%0h ready=%0b", physical_rs2, rs2_value, rs2_ready);
             end
+				
+
+				// Wakeup logic
+				for (m = 0; m < RS_SIZE; m = m + 1) begin
+					 entry = reservation_station[m];
+					 
+					 // Check if rs2 is ready to be woken up
+					 if (entry[78:73] == wakeup_tag) begin
+						  if (entry[40] == 1) begin
+								$fatal("Waking up a register marked ready, something is wrong!");
+						  end
+						  
+						  // Update rs2_value and set rs2_ready to 1
+						  reservation_station[m] = {
+								entry[130:73], // Keep other fields intact
+								wakeup_val,    // Update rs2_value
+								1'b1,          // Set rs2_ready to 1
+								entry[39:0]    // Keep remaining fields intact
+						  };
+					 end
+					 
+					 // Check if rs1 is ready to be woken up
+					 if (entry[117:112] == wakeup_tag) begin
+						  if (entry[79] == 1) begin
+								$fatal("Waking up a register marked ready, something is wrong!");
+						  end
+						  
+						  // Update rs1_value and set rs1_ready to 1
+						  reservation_station[m] = {
+								entry[130:112], // Keep other fields intact for rs1
+								wakeup_val,     // Update rs1_value
+								1'b1,           // Set rs1_ready to 1
+								entry[111:0]    // Keep remaining fields intact (rs2 and others)
+						  };
+					 end
+				end
+
+				
+				
 
             // Issue logic
-            issue_counter <= 0;
+            issue_counter = 0;
             issue_FU_valid <= 0;
 
             for (k = 0; k < RS_SIZE; k = k + 1) begin
@@ -156,12 +190,12 @@ module ReservationStation (
                                 entry[129], entry[128], entry[127:124], entry[123:118],
                                 entry[111:80], entry[72:41], entry[39:8], entry[5:0]
                             };
-                            reservation_station[k] <= 0; // delete issued instructions
-                            valid_bitmap[k] <= 0;
-                            count <= count - 1;
+                            reservation_station[k] = 0; // delete issued instructions
+                            valid_bitmap[k] = 0;
+                            count = count - 1;
                             issue_FU_valid[entry[7:6]] <= 1; //indicate new FU execution needed
 									 fu_ready[entry[7:6]] <= 0; //newly issued instruction FU no longer ready
-                            issue_counter <= issue_counter + 1;
+                            issue_counter = issue_counter + 1;
                         end
                         2'd1: begin
                             {issue_1_is_LS, issue_1_alusrc, issue_1_alu_type, issue_1_rd_tag,
@@ -169,12 +203,12 @@ module ReservationStation (
                                 entry[129], entry[128], entry[127:124], entry[123:118],
                                 entry[111:80], entry[72:41], entry[39:8], entry[5:0]
                             };
-                            reservation_station[k] <= 0; // delete issued instructions
-                            valid_bitmap[k] <= 0;
-                            count <= count - 1;
+                            reservation_station[k] = 0; // delete issued instructions
+                            valid_bitmap[k] = 0;
+                            count = count - 1;
                             fu_ready[entry[7:6]] <= 0; //newly issued instruction FU no longer ready
                             issue_FU_valid[entry[7:6]] <= 1; //indicate new FU execution needed
-                            issue_counter <= issue_counter + 1;
+                            issue_counter = issue_counter + 1;
                         end
                         2'd2: begin
                             {issue_2_is_LS, issue_2_alusrc, issue_2_alu_type, issue_2_rd_tag,
@@ -182,12 +216,12 @@ module ReservationStation (
                                 entry[129], entry[128], entry[127:124], entry[123:118],
                                 entry[111:80], entry[72:41], entry[39:8], entry[5:0]
                             };
-                            reservation_station[k] <= 0; // delete issued instructions
-                            valid_bitmap[k] <= 0;
-                            count <= count - 1;
+                            reservation_station[k] = 0; // delete issued instructions
+                            valid_bitmap[k] = 0;
+                            count = count - 1;
                             fu_ready[entry[7:6]] <= 0; //newly issued instruction FU no longer ready
                             issue_FU_valid[entry[7:6]] <= 1; //indicate new FU execution needed
-                            issue_counter <= issue_counter + 1;
+                            issue_counter = issue_counter + 1;
                         end
                         // if more than three valid instructions to issue, ignore the rest
                     endcase
@@ -197,44 +231,6 @@ module ReservationStation (
             {issue_FU1_valid, issue_FU2_valid, issue_FU3_valid} <= issue_FU_valid;
             // 0 doens't necessarily means it's free, 1 means it should be used next CC  
 				
-				// debug
-				  $display("\n=== Output Signals at Time %0t ===", $time);
-				  
-				  $display("\nFunctional Unit Status:");
-				  $display("  FU_num: %0d", FU_num);
-				  $display("  FU Valid: FU1=%b FU2=%b FU3=%b", issue_FU1_valid, issue_FU2_valid, issue_FU3_valid);
-				  
-				  $display("\nIssue Slot 0:");
-				  $display("  Load/Store: %b", issue_0_is_LS);
-				  $display("  RD Tag: %0d", issue_0_rd_tag);
-				  $display("  ALU Src: %b", issue_0_alusrc);
-				  $display("  ROB Num: %0d", issue_0_rob_num);
-				  $display("  RS1 Value: %h", issue_0_rs1_val);
-				  $display("  RS2 Value: %h", issue_0_rs2_val);
-				  $display("  Immediate: %h", issue_0_imm);
-				  $display("  ALU Type: %h", issue_0_alu_type);
-				  
-				  $display("\nIssue Slot 1:");
-				  $display("  Load/Store: %b", issue_1_is_LS);
-				  $display("  RD Tag: %0d", issue_1_rd_tag);
-				  $display("  ALU Src: %b", issue_1_alusrc);
-				  $display("  ROB Num: %0d", issue_1_rob_num);
-				  $display("  RS1 Value: %h", issue_1_rs1_val);
-				  $display("  RS2 Value: %h", issue_1_rs2_val);
-				  $display("  Immediate: %h", issue_1_imm);
-				  $display("  ALU Type: %h", issue_1_alu_type);
-				  
-				  $display("\nIssue Slot 2:");
-				  $display("  Load/Store: %b", issue_2_is_LS);
-				  $display("  RD Tag: %0d", issue_2_rd_tag);
-				  $display("  ALU Src: %b", issue_2_alusrc);
-				  $display("  ROB Num: %0d", issue_2_rob_num);
-				  $display("  RS1 Value: %h", issue_2_rs1_val);
-				  $display("  RS2 Value: %h", issue_2_rs2_val);
-				  $display("  Immediate: %h", issue_2_imm);
-				  $display("  ALU Type: %h", issue_2_alu_type);
-				  
-				  $display("\n==============================\n");
 			  
         end
     end

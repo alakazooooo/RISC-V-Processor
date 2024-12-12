@@ -67,6 +67,8 @@ module ReservationStation (
 		 find_free_slot = index;
 	end
 	endfunction
+	
+	
 
     always @(posedge clk) begin
         if (reset) begin
@@ -81,11 +83,8 @@ module ReservationStation (
             end
 
         end else begin
-				// debug
-            $display("Time=%0t Reset=%0b Count=%0d", $time, reset, count);
-				$display("FU Status: FU1=%0b FU2=%0b FU3=%0b", FU1_ready, FU2_ready, FU3_ready);
 				
-            fu_ready <= {FU3_ready, FU2_ready, FU1_ready};
+            fu_ready = {FU3_ready, FU2_ready, FU1_ready};
 
             // Add new instruction
             if (count < RS_SIZE && ALUControl != 0) begin
@@ -131,7 +130,7 @@ module ReservationStation (
                 };
 
                 valid_bitmap[free_slot] = 1'b1;
-                count = count + 1;	 
+                count = count + 1;
 					 
             end
 				
@@ -176,62 +175,61 @@ module ReservationStation (
 
             // Issue logic
             issue_counter = 0;
-            issue_FU_valid <= 0;
+            issue_FU_valid = 0;
 
             for (k = 0; k < RS_SIZE; k = k + 1) begin
                 entry = reservation_station[k];
                 entry_fu_ready = fu_ready[entry[7:6]];
 
                 if (entry[130] && entry[79] && entry[40] && entry_fu_ready) begin  // Valid entry with ready operands
-                    case(issue_counter)
-                        2'd0: begin
+						  case(entry[7:6]) // issue based on FU_num
+								2'd0: begin
                             {issue_0_is_LS, issue_0_alusrc, issue_0_alu_type, issue_0_rd_tag,
-                             issue_0_rs1_val, issue_0_rs2_val, issue_0_imm, issue_0_rob_num} <= {
+                             issue_0_rs1_val, issue_0_rs2_val, issue_0_imm, issue_0_rob_num} = {
                                 entry[129], entry[128], entry[127:124], entry[123:118],
                                 entry[111:80], entry[72:41], entry[39:8], entry[5:0]
                             };
                             reservation_station[k] = 0; // delete issued instructions
                             valid_bitmap[k] = 0;
                             count = count - 1;
-                            issue_FU_valid[entry[7:6]] <= 1; //indicate new FU execution needed
-									 fu_ready[entry[7:6]] <= 0; //newly issued instruction FU no longer ready
-                            issue_counter = issue_counter + 1;
+                            issue_FU_valid[entry[7:6]] = 1; //indicate new FU execution needed
+									 fu_ready[entry[7:6]] = 0; //newly issued instruction FU no longer ready
                         end
                         2'd1: begin
                             {issue_1_is_LS, issue_1_alusrc, issue_1_alu_type, issue_1_rd_tag,
-                             issue_1_rs1_val, issue_1_rs2_val, issue_1_imm, issue_1_rob_num} <= {
+                             issue_1_rs1_val, issue_1_rs2_val, issue_1_imm, issue_1_rob_num} = {
                                 entry[129], entry[128], entry[127:124], entry[123:118],
                                 entry[111:80], entry[72:41], entry[39:8], entry[5:0]
                             };
                             reservation_station[k] = 0; // delete issued instructions
                             valid_bitmap[k] = 0;
                             count = count - 1;
-                            fu_ready[entry[7:6]] <= 0; //newly issued instruction FU no longer ready
-                            issue_FU_valid[entry[7:6]] <= 1; //indicate new FU execution needed
-                            issue_counter = issue_counter + 1;
+                            fu_ready[entry[7:6]] = 0; //newly issued instruction FU no longer ready
+                            issue_FU_valid[entry[7:6]] = 1; //indicate new FU execution needed
                         end
                         2'd2: begin
                             {issue_2_is_LS, issue_2_alusrc, issue_2_alu_type, issue_2_rd_tag,
-                             issue_2_rs1_val, issue_2_rs2_val, issue_2_imm, issue_2_rob_num} <= {
+                             issue_2_rs1_val, issue_2_rs2_val, issue_2_imm, issue_2_rob_num} = {
                                 entry[129], entry[128], entry[127:124], entry[123:118],
                                 entry[111:80], entry[72:41], entry[39:8], entry[5:0]
                             };
                             reservation_station[k] = 0; // delete issued instructions
                             valid_bitmap[k] = 0;
                             count = count - 1;
-                            fu_ready[entry[7:6]] <= 0; //newly issued instruction FU no longer ready
-                            issue_FU_valid[entry[7:6]] <= 1; //indicate new FU execution needed
-                            issue_counter = issue_counter + 1;
+                            fu_ready[entry[7:6]] = 0; //newly issued instruction FU no longer ready
+                            issue_FU_valid[entry[7:6]] = 1; //indicate new FU execution needed
                         end
                         // if more than three valid instructions to issue, ignore the rest
                     endcase
                 end
             end
 
-            {issue_FU1_valid, issue_FU2_valid, issue_FU3_valid} <= issue_FU_valid;
-            // 0 doens't necessarily means it's free, 1 means it should be used next CC  
+            {issue_FU3_valid, issue_FU2_valid, issue_FU1_valid} = issue_FU_valid;
+            // 0 doens't necessarily means the FU is free (could be in process of previous long execution) just means no new issue
+				// 1 means it should be used next CC  
+				// there might be some junk issue values but it should only be considered if valid is flagged 1
 				
-			  
+
         end
     end
 endmodule

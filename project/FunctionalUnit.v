@@ -52,8 +52,7 @@ module FunctionalUnit(
 			4'b0010: cycles_for_operation = 2; // ADD
 			4'b0011: cycles_for_operation = 1; // XOR
 			4'b1011: cycles_for_operation = 4; // SRA (right arithmetic shift)
-			4'b1111: cycles_for_operation = 0; // also NONE
-			// TODO code for LUI
+			4'b1111: cycles_for_operation = 0; // pass through RHS
 			default: cycles_for_operation = 0;
 		endcase
 	end
@@ -78,8 +77,7 @@ module FunctionalUnit(
 			4'b0010: compute_operation = lhs + rhs; // ADD
 			4'b0011: compute_operation = lhs ^ rhs; // XOR
 			4'b1011: compute_operation = (lhs >> rhs) | (lhs & (32'h80000000)); // SRA (right arithmetic shift)
-			4'b1111: compute_operation = -1; // also NONE
-			// TODO code for LUI
+			4'b1111: compute_operation = rhs; // pass through RHS (this is emitted by Decode to implement LUI)
 			default: compute_operation = -1;
 		endcase
 	end
@@ -97,7 +95,6 @@ module FunctionalUnit(
 			internal_tag_to_output <= 0;
 			internal_rob_index <= -1;
 			computation_result <= -1;
-			// TODO initialize other variables as needed
 		end else begin
 			if (write_enable) begin
 				if (!is_available) begin
@@ -113,6 +110,8 @@ module FunctionalUnit(
 				internal_rob_index <= rob_index;
 				cycles_waited_so_far <= 0;
 				has_operation <= 1;
+				// Pretend this is starting the computation and not doing it entirely.
+				computation_result <= compute_operation(ALUControl, rs1_value, ALUSrc ? imm : rs2_value);
 			end else if (has_operation) begin
 				// Processing logic
 				if (cycles_waited_so_far < cycles_for_operation(internal_ALUControl)) begin
@@ -120,7 +119,6 @@ module FunctionalUnit(
 				end else if (cycles_waited_so_far == cycles_for_operation(internal_ALUControl)) begin
 					has_operation <= 0;
 				end
-				computation_result <= compute_operation(internal_ALUControl, internal_rs1_value, internal_ALUSrc ? internal_imm : internal_rs2_value);
 			end
 		end
 	end
@@ -134,8 +132,7 @@ module FunctionalUnit(
 			4'b0010: ; // ADD
 			4'b0011: ; // XOR
 			4'b1011: ; // SRA (right arithmetic shift)
-			4'b1111: ; // also NONE
-			// TODO code for LUI
+			4'b1111: ; // pass through RHS
 			default: begin
 				$fatal("Invalid ALUControl");
 			end

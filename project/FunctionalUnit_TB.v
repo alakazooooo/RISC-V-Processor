@@ -154,17 +154,18 @@ module FunctionalUnit_TB(clk);
 		
 		clk = 0;
 		#1;
-		// TODO set some inputs
+		write_enable = 1;
+		imm = 456; rs1_value = 1; rs2_value = 2;
+		ALUControl = 4'b1111; ALUSrc = 1; // pass through imm
+		tag_to_output = 3;
+		rob_index = 9;
+		is_for_lsq = 0;
 		clk = 1;
 		#1;
-		// TODO make some assertions
 		
-		clk = 0;
-		#1;
-		// TODO set some inputs
-		clk = 1;
-		#1;
-		// TODO make some assertions
+		`wait_until_available;
+		`assert(is_available && wakeup_active && !lsq_wakeup_active && wakeup_tag == 3 && wakeup_rob_index == 9);
+		`assert(wakeup_value == 456);
 		
 		$stop;
 	end

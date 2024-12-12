@@ -22,6 +22,18 @@ module ReservationStation_TB(
   reg FU1_ready, FU2_ready, FU3_ready;
   reg [5:0] wakeup_tag;
   reg [31:0] wakeup_val;
+  reg wakeup_1_valid; 
+  reg wakeup_2_valid;
+  reg wakeup_3_valid;
+  reg wakeup_4_valid;
+  reg [5:0] wakeup_1_tag; 
+  reg [5:0] wakeup_2_tag;
+  reg [5:0] wakeup_3_tag;
+  reg [5:0] wakeup_4_tag;
+  reg [31:0] wakeup_1_val;
+  reg [31:0] wakeup_2_val;
+  reg [31:0] wakeup_3_val;
+  reg [31:0] wakeup_4_val;
 
   // Outputs
   wire [1:0] FU_num;
@@ -54,8 +66,20 @@ module ReservationStation_TB(
     .FU1_ready(FU1_ready),
     .FU2_ready(FU2_ready),
     .FU3_ready(FU3_ready),
-    .wakeup_tag(wakeup_tag),
-    .wakeup_val(wakeup_val),
+
+    .wakeup_1_valid(wakeup_1_valid), 
+    .wakeup_2_valid(wakeup_2_valid), 
+    .wakeup_3_valid(wakeup_3_valid), 
+    .wakeup_4_valid(wakeup_4_valid),
+	.wakeup_1_tag(wakeup_1_tag), 
+    .wakeup_2_tag(wakeup_2_tag), 
+    .wakeup_3_tag(wakeup_3_tag), 
+    .wakeup_4_tag(wakeup_4_tag),
+	.wakeup_1_val(wakeup_1_val), 
+    .wakeup_2_val(wakeup_2_val), 
+    .wakeup_3_val(wakeup_3_val), 
+    .wakeup_4_val(wakeup_4_val),
+
 
     // Outputs
     .FU_num(FU_num),
@@ -83,9 +107,9 @@ module ReservationStation_TB(
     .issue_0_imm(issue_0_imm), 
     .issue_1_imm(issue_1_imm), 
     .issue_2_imm(issue_2_imm), 
-  	 .issue_0_alu_type(issue_0_alu_type),
-	 .issue_1_alu_type(issue_1_alu_type),
-	 .issue_2_alu_type(issue_2_alu_type)
+  	.issue_0_alu_type(issue_0_alu_type),
+	.issue_1_alu_type(issue_1_alu_type),
+	.issue_2_alu_type(issue_2_alu_type)
   	);
 
    always begin
@@ -115,6 +139,9 @@ module ReservationStation_TB(
      LoadStore = 0; // Not a load/store operation
      ALUSrc = 0; // Use registers as sources
      FU1_ready = 1; FU2_ready = 0; FU3_ready = 0; // Only FU1 is ready
+     wakeup_1_valid = 0; wakeup_2_valid = 0; wakeup_3_valid = 0; wakeup_4_valid = 0;
+	 wakeup_1_tag = 0; wakeup_2_tag = 0; wakeup_3_tag = 0; wakeup_4_tag = 0;
+	 wakeup_1_val = 0; wakeup_2_val = 0; wakeup_3_val = 0; wakeup_4_val = 0;
 
      #10; // Wait for one clock cycle
 
@@ -124,7 +151,7 @@ module ReservationStation_TB(
      rs1_ready = 1; // RS is ready for load operation
      rs1_value = 32'h00000003; // Value of RS for load operation
      LoadStore = 1; // This is a load operation
-	  FU1_ready = 0; FU2_ready = 0; FU3_ready = 1;
+	 FU1_ready = 0; FU2_ready = 0; FU3_ready = 1;
 
      #10;
 
@@ -134,11 +161,19 @@ module ReservationStation_TB(
      rs1_ready = 0; // RS is not ready to simulate dependency
      rs2_ready = 1; 
      rs2_value =32'h00000004;  
-	  FU1_ready = 1; FU2_ready = 1; FU3_ready = 1;
+	 FU1_ready = 1; FU2_ready = 1; FU3_ready = 1;
      
-      #20;
+     #20;
 
-      $finish; // End simulation after tests are done.
+     wakeup_1_valid = 1;
+     wakeup_1_tag = 6'd31;
+     wakeup_1_val = 32'h00000001;
+
+     #20
+
+//todo how to deal with don't cares
+
+     $finish; // End simulation after tests are done.
    end
 
 endmodule

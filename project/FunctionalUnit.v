@@ -1,7 +1,7 @@
 module FunctionalUnit(
   input wire clk,
   input wire reset,
-  // Issue interface
+  // Dispatch interface
   input wire write_enable,
   input wire [3:0] ALUControl,
   input wire ALUSrc, // 0 means (rs1 OPERATION rs2), 1 means (rs1 OPERATION imm)

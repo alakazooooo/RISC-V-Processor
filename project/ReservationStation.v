@@ -20,8 +20,9 @@ module ReservationStation (
     input wire FU1_ready, FU2_ready, FU3_ready,
 
     //forward inputs and wakeup
-    input wire [5:0] wakeup_tag,
-    input wire [31:0] wakeup_val,
+    input wire wakeup_1_valid, wakeup_2_valid, wakeup_3_valid, wakeup_4_valid,
+	input wire [5:0] wakeup_1_tag, wakeup_2_tag, wakeup_3_tag, wakeup_4_tag,
+	input wire [31:0] wakeup_1_val, wakeup_2_val, wakeup_3_val, wakeup_4_val,
 
     // Issue interface
     output reg [1:0] FU_num,
@@ -48,6 +49,9 @@ module ReservationStation (
     reg [2:0] fu_ready; //problems?
     reg entry_fu_ready;
     reg [2:0] issue_FU_valid;
+	 reg [23:0] wakeup_tags;
+    reg [127:0] wakeup_vals;
+    reg [3:0] wakeup_valids;
 
     integer i, j, k, m;
 
@@ -67,8 +71,6 @@ module ReservationStation (
 		 find_free_slot = index;
 	end
 	endfunction
-	
-	
 
     always @(posedge clk) begin
         if (reset) begin
@@ -77,6 +79,9 @@ module ReservationStation (
             {issue_FU1_valid, issue_FU2_valid, issue_FU3_valid} <= 0;
             issue_FU_valid <= 0;
 				fu_ready <= 3'b000;
+				wakeup_tags <= 0;
+            wakeup_vals <= 0;
+				wakeup_valids <= 0;
             
             for (j = 0; j < RS_SIZE; j = j + 1) begin
                 reservation_station[j] <= 0;
@@ -133,44 +138,62 @@ module ReservationStation (
                 count = count + 1;
 					 
             end
+
+            $display("Adding new instruction:");
+			$display("  Free slot: %0d", free_slot);
+            $display("  ALUControl: %0h", ALUControl);
+            $display("  FU_num: %0d", FU_num);
+            $display("  RS1: tag=%0d value=%0h ready=%0b", physical_rs1, rs1_value, rs1_ready);
+            $display("  RS2: tag=%0d value=%0h ready=%0b", physical_rs2, rs2_value, rs2_ready);
+					 
+            $display("before issue");
+            $display("Reservation Station Entry 0: %0b", reservation_station[0]);
+            $display("Reservation Station Entry 1: %0b", reservation_station[1]);
+            $display("Reservation Station Entry 2: %0b", reservation_station[2]);
+            $display("Reservation Station Entry 3: %0b", reservation_station[3]);
+            $display("Reservation Station Entry 4: %0b", reservation_station[4]);
+            $display("Reservation Station Entry 5: %0b", reservation_station[5]);
+            $display("Reservation Station Entry 6: %0b", reservation_station[6]);
+            $display("Reservation Station Entry 7: %0b", reservation_station[7]);
+            $display("Reservation Station Entry 8: %0b", reservation_station[8]);
+            $display("Reservation Station Entry 9: %0b", reservation_station[9]);
 				
 
-				// Wakeup logic
-				for (m = 0; m < RS_SIZE; m = m + 1) begin
-					 entry = reservation_station[m];
-					 
-					 // Check if rs2 is ready to be woken up
-					 if (entry[78:73] == wakeup_tag) begin
-						  if (entry[40] == 1) begin
-								$fatal("Waking up a register marked ready, something is wrong!");
-						  end
-						  
-						  // Update rs2_value and set rs2_ready to 1
-						  reservation_station[m] = {
-								entry[130:73], // Keep other fields intact
-								wakeup_val,    // Update rs2_value
-								1'b1,          // Set rs2_ready to 1
-								entry[39:0]    // Keep remaining fields intact
-						  };
-					 end
-					 
-					 // Check if rs1 is ready to be woken up
-					 if (entry[117:112] == wakeup_tag) begin
-						  if (entry[79] == 1) begin
-								$fatal("Waking up a register marked ready, something is wrong!");
-						  end
-						  
-						  // Update rs1_value and set rs1_ready to 1
-						  reservation_station[m] = {
-								entry[130:112], // Keep other fields intact for rs1
-								wakeup_val,     // Update rs1_value
-								1'b1,           // Set rs1_ready to 1
-								entry[111:0]    // Keep remaining fields intact (rs2 and others)
-						  };
-					 end
-				end
-
-				
+            // Wakeup logic
+            for (m = 0; m < RS_SIZE; m = m + 1) begin
+                entry = reservation_station[m];
+                
+                
+                // Assign values
+                wakeup_tags = {wakeup_1_tag, wakeup_2_tag, wakeup_3_tag, wakeup_4_tag};
+                wakeup_vals = {wakeup_1_val, wakeup_2_val, wakeup_3_val, wakeup_4_val};
+                wakeup_valids = {wakeup_1_valid, wakeup_2_valid, wakeup_3_valid, wakeup_4_valid};
+                
+                // Check all wakeup tags for both rs1 and rs2
+                for (i = 0; i < 4; i = i + 1) begin
+                    // RS2 wakeup
+                    if (entry[78:73] == wakeup_tags[i*6 +: 6] && wakeup_valids[i]) begin
+                        if (entry[40]) $fatal("Waking up a register marked ready, something is wrong!");
+                        reservation_station[m] = {
+                            entry[130:73],    // Keep other fields intact
+                            wakeup_vals[i*32 +: 32],   // Update rs2_value
+                            1'b1,             // Set rs2_ready to 1
+                            entry[39:0]       // Keep remaining fields intact
+                        };
+                    end
+                    
+                    // RS1 wakeup
+                    if (entry[117:112] == wakeup_tags[i*6 +: 6] && wakeup_valids[i]) begin
+                        if (entry[79]) $fatal("Waking up a register marked ready, something is wrong!");
+                        reservation_station[m] = {
+                            entry[130:112],   // Keep other fields intact for rs1
+                            wakeup_vals[i*32 +: 32],   // Update rs1_value
+                            1'b1,             // Set rs1_ready to 1
+                            entry[78:0]      // Keep remaining fields intact
+                        };
+                    end
+                end
+            end
 				
 
             // Issue logic
@@ -226,11 +249,62 @@ module ReservationStation (
 
             {issue_FU3_valid, issue_FU2_valid, issue_FU1_valid} = issue_FU_valid;
             // 0 doens't necessarily means the FU is free (could be in process of previous long execution) just means no new issue
-				// 1 means it should be used next CC  
-				// there might be some junk issue values but it should only be considered if valid is flagged 1
-				
+			// 1 means it should be used next CC  
+			// there might be some junk issue values but it should only be considered if valid is flagged 1
 
+
+
+            $display("after issue");
+            $display("Reservation Station Entry 0: %0b", reservation_station[0]);
+            $display("Reservation Station Entry 1: %0b", reservation_station[1]);
+            $display("Reservation Station Entry 2: %0b", reservation_station[2]);
+            $display("Reservation Station Entry 3: %0b", reservation_station[3]);
+            $display("Reservation Station Entry 4: %0b", reservation_station[4]);
+            $display("Reservation Station Entry 5: %0b", reservation_station[5]);
+            $display("Reservation Station Entry 6: %0b", reservation_station[6]);
+            $display("Reservation Station Entry 7: %0b", reservation_station[7]);
+            $display("Reservation Station Entry 8: %0b", reservation_station[8]);
+            $display("Reservation Station Entry 9: %0b", reservation_station[9]);
+				
+			// debug
+            $display("\n=== Output Signals at Time %0t ===", $time);
+            
+            $display("\nFunctional Unit Status:");
+            $display("  FU_num: %0d", FU_num);
+            $display("  FU Valid: FU1=%b FU2=%b FU3=%b", issue_FU1_valid, issue_FU2_valid, issue_FU3_valid);
+            
+            $display("\nIssue Slot 0:");
+            $display("  Load/Store: %b", issue_0_is_LS);
+            $display("  RD Tag: %0d", issue_0_rd_tag);
+            $display("  ALU Src: %b", issue_0_alusrc);
+            $display("  ROB Num: %0d", issue_0_rob_num);
+            $display("  RS1 Value: %h", issue_0_rs1_val);
+            $display("  RS2 Value: %h", issue_0_rs2_val);
+            $display("  Immediate: %h", issue_0_imm);
+            $display("  ALU Type: %h", issue_0_alu_type);
+				  
+            $display("\nIssue Slot 1:");
+            $display("  Load/Store: %b", issue_1_is_LS);
+            $display("  RD Tag: %0d", issue_1_rd_tag);
+            $display("  ALU Src: %b", issue_1_alusrc);
+            $display("  ROB Num: %0d", issue_1_rob_num);
+            $display("  RS1 Value: %h", issue_1_rs1_val);
+            $display("  RS2 Value: %h", issue_1_rs2_val);
+            $display("  Immediate: %h", issue_1_imm);
+            $display("  ALU Type: %h", issue_1_alu_type);
+            
+            $display("\nIssue Slot 2:");
+            $display("  Load/Store: %b", issue_2_is_LS);
+            $display("  RD Tag: %0d", issue_2_rd_tag);
+            $display("  ALU Src: %b", issue_2_alusrc);
+            $display("  ROB Num: %0d", issue_2_rob_num);
+            $display("  RS1 Value: %h", issue_2_rs1_val);
+            $display("  RS2 Value: %h", issue_2_rs2_val);
+            $display("  Immediate: %h", issue_2_imm);
+            $display("  ALU Type: %h", issue_2_alu_type);
+            
+            $display("\n==============================\n");
+				
         end
     end
 endmodule
-

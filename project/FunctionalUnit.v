@@ -77,7 +77,7 @@ module FunctionalUnit(
 			4'b0001: compute_operation = lhs | rhs; // OR
 			4'b0010: compute_operation = lhs + rhs; // ADD
 			4'b0011: compute_operation = lhs ^ rhs; // XOR
-			4'b1011: compute_operation = lhs >>> rhs; // SRA (right arithmetic shift)
+			4'b1011: compute_operation = (lhs >> rhs) | (lhs & (32'h80000000)); // SRA (right arithmetic shift)
 			4'b1111: compute_operation = -1; // also NONE
 			// TODO code for LUI
 			default: compute_operation = -1;

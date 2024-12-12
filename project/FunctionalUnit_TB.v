@@ -122,6 +122,38 @@ module FunctionalUnit_TB(clk);
 		
 		clk = 0;
 		#1;
+		write_enable = 1;
+		imm = 1; rs1_value = -5; rs2_value = 3;
+		ALUControl = 4'b1011; ALUSrc = 1; // compute rs1 >>> imm
+		tag_to_output = 3;
+		rob_index = 6;
+		is_for_lsq = 1;
+		clk = 1;
+		#1;
+		`assert(!is_available); // SRA should take more than a cycle
+		
+		`wait_until_available;
+		`assert(is_available && !wakeup_active && lsq_wakeup_active && lsq_wakeup_rob_index == 6);
+		`assert(lsq_wakeup_value == -3); // SRA by 1 is division by 2 rounding towards -infinity
+		
+		clk = 0;
+		#1;
+		write_enable = 1;
+		imm = 1; rs1_value = 13; rs2_value = 2;
+		ALUControl = 4'b1011; ALUSrc = 0; // compute rs1 >>> rs2
+		tag_to_output = 3;
+		rob_index = 2;
+		is_for_lsq = 1;
+		clk = 1;
+		#1;
+		`assert(!is_available); // SRA should take more than a cycle
+		
+		`wait_until_available;
+		`assert(is_available && !wakeup_active && lsq_wakeup_active && lsq_wakeup_rob_index == 2);
+		`assert(lsq_wakeup_value == 3); // SRA by 2 is division by 4 rounding towards -infinity
+		
+		clk = 0;
+		#1;
 		// TODO set some inputs
 		clk = 1;
 		#1;

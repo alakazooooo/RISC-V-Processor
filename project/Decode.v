@@ -75,7 +75,7 @@ always @(*) begin
 			RegWrite_next = 0;
 			BMS_next = 0;
 			
-			ALUControl_next = 4'b0000; //NONE
+			ALUControl_next = 4'b0000; //NOP
 		end
 		
 		7'b0110011: begin //R-type (ADD, XOR)
@@ -168,7 +168,7 @@ always @(*) begin
 			RegWrite_next = 1;
 			BMS_next = 0;
 			
-			ALUControl_next = 4'b1111; //NONE
+			ALUControl_next = 4'b1111; //Don't do anything
 		end
 		
 		default: begin
@@ -182,7 +182,7 @@ always @(*) begin
 			RegWrite_next = 0;
 			BMS_next = 0;
 			
-			ALUControl_next = 4'b0000; //NONE
+			ALUControl_next = 4'b0000; //NOP
 		end
 		
 	endcase

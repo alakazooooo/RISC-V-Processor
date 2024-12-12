@@ -1,137 +1,144 @@
+module ReservationStation_TB(
+	input wire test1,
+	output reg test
+);
+    // Clock and reset signals
+  reg clk = 0;
+  reg reset;
 
-`timescale 1ns / 1ps
+  // Inputs
+  reg [5:0] physical_rd;
+  reg [5:0] physical_rs1;
+  reg [5:0] physical_rs2;
+  reg rs1_ready;
+  reg rs2_ready;
+  reg [31:0] rs1_value;
+  reg [31:0] rs2_value;
+  reg [5:0] ROB_num;
+  reg [3:0] ALUControl;
+  reg [31:0] imm;
+  reg LoadStore;
+  reg ALUSrc;
+  reg FU1_ready, FU2_ready, FU3_ready;
+  reg [5:0] wakeup_tag;
+  reg [31:0] wakeup_val;
 
-module ReservationStation_TB(output reg test);
+  // Outputs
+  wire [1:0] FU_num;
+  wire issue_0_is_LS, issue_1_is_LS, issue_2_is_LS;
+  wire issue_FU1_valid, issue_FU2_valid, issue_FU3_valid;
+  wire [5:0] issue_0_rd_tag, issue_1_rd_tag, issue_2_rd_tag;
+  wire issue_0_alusrc, issue_1_alusrc, issue_2_alusrc;
+  wire [5:0] issue_0_rob_num, issue_1_rob_num, issue_2_rob_num;
+  wire [31:0] issue_0_rs1_val, issue_1_rs1_val, issue_2_rs1_val;
+  wire [31:0] issue_0_rs2_val, issue_1_rs2_val, issue_2_rs2_val;
+  wire [31:0] issue_0_imm, issue_1_imm, issue_2_imm;
+  wire [3:0] issue_0_alu_type, issue_1_alu_type, issue_2_alu_type;
 
-    // Inputs
-    reg clk = 0;
-    reg reset;
-    reg [5:0] physical_rd, physical_rs1, physical_rs2;
-    reg rs1_ready, rs2_ready;
-    reg [31:0] rs1_value, rs2_value;
-    reg [5:0] ROB_num;
-    reg [3:0] ALUControl;
-    reg [31:0] imm;
-    reg LoadStore, ALUSrc, RegWrite, BMS;
+  // Instantiate the Reservation Station module
+  ReservationStation uut (
+    .clk(clk),
+    .reset(reset),
+    .physical_rd(physical_rd),
+    .physical_rs1(physical_rs1),
+    .physical_rs2(physical_rs2),
+    .rs1_ready(rs1_ready),
+    .rs2_ready(rs2_ready),
+    .rs1_value(rs1_value),
+    .rs2_value(rs2_value),
+    .ROB_num(ROB_num),
+    .ALUControl(ALUControl),
+    .imm(imm),
+    .LoadStore(LoadStore),
+    .ALUSrc(ALUSrc),
+    .FU1_ready(FU1_ready),
+    .FU2_ready(FU2_ready),
+    .FU3_ready(FU3_ready),
+    .wakeup_tag(wakeup_tag),
+    .wakeup_val(wakeup_val),
 
     // Outputs
-    wire [1:0] FU_num;
-    wire load_store_valid;
-    wire [31:0] issue_rs1_value_0, issue_rs1_value_1, issue_rs1_value_2;
-    wire [31:0] issue_rs2_value_0, issue_rs2_value_1, issue_rs2_value_2;
-    wire [2:0] issue_alu_type_0, issue_alu_type_1, issue_alu_type_2;
-    wire [128:0] current_RS_entry;
+    .FU_num(FU_num),
+    .issue_0_is_LS(issue_0_is_LS), 
+    .issue_1_is_LS(issue_1_is_LS), 
+    .issue_2_is_LS(issue_2_is_LS), 
+    .issue_FU1_valid(issue_FU1_valid), 
+    .issue_FU2_valid(issue_FU2_valid), 
+    .issue_FU3_valid(issue_FU3_valid), 
+    .issue_0_rd_tag(issue_0_rd_tag), 
+    .issue_1_rd_tag(issue_1_rd_tag), 
+    .issue_2_rd_tag(issue_2_rd_tag), 
+    .issue_0_alusrc(issue_0_alusrc), 
+    .issue_1_alusrc(issue_1_alusrc), 
+    .issue_2_alusrc(issue_2_alusrc), 
+    .issue_0_rob_num(issue_0_rob_num), 
+    .issue_1_rob_num(issue_1_rob_num), 
+    .issue_2_rob_num(issue_2_rob_num), 
+    .issue_0_rs1_val(issue_0_rs1_val), 
+    .issue_1_rs1_val(issue_1_rs1_val), 
+    .issue_2_rs1_val(issue_2_rs1_val), 
+    .issue_0_rs2_val(issue_0_rs2_val), 
+    .issue_1_rs2_val(issue_1_rs2_val), 
+    .issue_2_rs2_val(issue_2_rs2_val), 
+    .issue_0_imm(issue_0_imm), 
+    .issue_1_imm(issue_1_imm), 
+    .issue_2_imm(issue_2_imm), 
+  	 .issue_0_alu_type(issue_0_alu_type),
+	 .issue_1_alu_type(issue_1_alu_type),
+	 .issue_2_alu_type(issue_2_alu_type)
+  	);
 
-    // Instantiate the Unit Under Test (UUT)
-    ReservationStation uut (
-        .clk(clk), 
-        .reset(reset),
-        .physical_rd(physical_rd),
-        .physical_rs1(physical_rs1),
-        .physical_rs2(physical_rs2),
-        .rs1_ready(rs1_ready),
-        .rs2_ready(rs2_ready),
-        .rs1_value(rs1_value),
-        .rs2_value(rs2_value),
-        .ROB_num(ROB_num),
-        .ALUControl(ALUControl),
-        .imm(imm),
-        .LoadStore(LoadStore),
-        .ALUSrc(ALUSrc),
-        .RegWrite(RegWrite),
-        .BMS(BMS),
-        .FU_num(FU_num),
-        .load_store_valid(load_store_valid),
-        .issue_rs1_value_0(issue_rs1_value_0),
-        .issue_rs1_value_1(issue_rs1_value_1),
-        .issue_rs1_value_2(issue_rs1_value_2),
-        .issue_rs2_value_0(issue_rs2_value_0),
-        .issue_rs2_value_1(issue_rs2_value_1),
-        .issue_rs2_value_2(issue_rs2_value_2),
-        .issue_alu_type_0(issue_alu_type_0),
-        .issue_alu_type_1(issue_alu_type_1),
-        .issue_alu_type_2(issue_alu_type_2),
-        .current_RS_entry(current_RS_entry)
-    );
+   always begin
+     #5 clk = ~clk; 
+   end
+	
 
-	 
-	 always begin
-		  #5 clk = ~clk;
-	 end
-	 
+   // Test procedure
+   initial begin
+     // Initialize inputs
+     reset = 1; // Assert reset
+     #10; // Wait one clock cycle
 
-    // Test scenario
-    initial begin
-        // Initialize inputs
-        reset = 0;
-        physical_rd = 0;
-        physical_rs1 = 0;
-        physical_rs2 = 0;
-        rs1_ready = 0;
-        rs2_ready = 0;
-        rs1_value = 0;
-        rs2_value = 0;
-        ROB_num = 0;
-        ALUControl = 0;
-        imm = 0;
-        LoadStore = 0;
-        ALUSrc = 0;
-        RegWrite = 0;
-        BMS = 0;
+     reset = 0; // Deassert reset
 
-        // Apply reset
-        #10 reset = 1;
-        #10 reset = 0;
+     // Test Case 1 - Issue an ALU operation
+     physical_rd = 6'd10; // Destination register tag
+     physical_rs1 = 6'd11; // Source register tag (RS1)
+     physical_rs2 = 6'd12; // Source register tag (RS2)
+     rs1_ready = 1; // RS1 is ready
+     rs2_ready = 1; // RS2 is ready
+     rs1_value = 32'h00000001; // Value of RS1
+     rs2_value = 32'h00000002; // Value of RS2
+     ROB_num = 6'd15; // ROB entry number
+     ALUControl = 4'b0010; // ALU operation code (e.g., ADD)
+     imm = 32'h00000000; // No immediate value used here
+     LoadStore = 0; // Not a load/store operation
+     ALUSrc = 0; // Use registers as sources
+     FU1_ready = 1; FU2_ready = 0; FU3_ready = 0; // Only FU1 is ready
 
-        // Test case 1
-        #10;
-        physical_rd = 6'd1;
-        physical_rs1 = 6'd2;
-        physical_rs2 = 6'd3;
-        rs1_ready = 1;
-        rs2_ready = 1;
-        rs1_value = 32'hAAAAAAAA;
-        rs2_value = 32'hBBBBBBBB;
-        ROB_num = 6'd1;
-        ALUControl = 4'b0001;
-        imm = 32'h12345678;
-		  $display("case 1");
+     #10; // Wait for one clock cycle
 
-        // Test case 2
-        #10;
-        physical_rd = 6'd4;
-        physical_rs1 = 6'd5;
-        physical_rs2 = 6'd6;
-        rs1_ready = 0;
-        rs2_ready = 1;
-        rs1_value = 32'hCCCCCCCC;
-        rs2_value = 32'hDDDDDDDD;
-        ROB_num = 6'd2;
-        ALUControl = 4'b0010;
-        imm = 32'h87654321;
+     // Test Case - Issue a Load operation
+     physical_rd = 6'd20; // Destination register tag for load
+     physical_rs1 = 6'd21; // Source register tag (RS)
+     rs1_ready = 1; // RS is ready for load operation
+     rs1_value = 32'h00000003; // Value of RS for load operation
+     LoadStore = 1; // This is a load operation
+	  FU1_ready = 0; FU2_ready = 0; FU3_ready = 1;
 
-        // Test case 3
-        #10;
-        physical_rd = 6'd7;
-        physical_rs1 = 6'd8;
-        physical_rs2 = 6'd9;
-        rs1_ready = 1;
-        rs2_ready = 0;
-        rs1_value = 32'hEEEEEEEE;
-        rs2_value = 32'hFFFFFFFF;
-        ROB_num = 6'd3;
-        ALUControl = 4'b0011;
-        imm = 32'hABCDEF01;
+     #10;
 
-        // Add more test cases as needed
+     // Test Case - Issue another ALU operation with different values
+     physical_rd = 6'd30; 
+     physical_rs1 = 6'd31; 
+     rs1_ready = 0; // RS is not ready to simulate dependency
+     rs2_ready = 1; 
+     rs2_value =32'h00000004;  
+	  FU1_ready = 1; FU2_ready = 1; FU3_ready = 1;
+     
+      #20;
 
-        // End simulation
-        #100 $stop;
-    end
-
-    // Monitor changes
-	 initial begin
-		  $monitor("Time=%0t, entry", $time, uut.current_RS_entry);
-	 end
+      $finish; // End simulation after tests are done.
+   end
 
 endmodule

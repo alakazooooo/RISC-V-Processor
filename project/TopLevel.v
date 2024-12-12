@@ -26,8 +26,8 @@ module TopLevel (
 
     // Read the hex file
     //$readmemh("demo.txt", hex_data);
-	 //$readmemh("C:/Users/Public/try/demo.txt", hex_data);
-    $readmemh("c:/Users/Zhang/Documents/School/ECE M116C/Honors Seminar/RISC-V-Processor/project/demo.txt", hex_data);
+	 $readmemh("C:/Users/lydia/RISC-V-Processor/project/final-inst.txt", hex_data);
+    //$readmemh("c:/Users/Zhang/Documents/School/ECE M116C/Honors Seminar/RISC-V-Processor/project/demo.txt", hex_data);
 	 
     instruction_count = 0;
     
@@ -60,7 +60,7 @@ module TopLevel (
   );
   
   
-  wire [6:0] opcode;
+   wire [6:0] opcode;
 	wire [4:0] rd;
 	wire [4:0] rs1;            
 	wire [4:0] rs2;         
@@ -93,15 +93,27 @@ module TopLevel (
   wire [5:0] physical_rd, physical_rs1, physical_rs2;
   wire rs1_ready, rs2_ready;
   wire [31:0] rs1_value, rs2_value;
+  wire wakeup_1_valid; 
+  wire wakeup_2_valid;
+  wire wakeup_3_valid;
+  wire wakeup_0_valid;
+  wire [5:0] wakeup_1_tag; 
+  wire [5:0] wakeup_2_tag;
+  wire [5:0] wakeup_3_tag;
+  wire [5:0] wakeup_0_tag;
+  wire [31:0] wakeup_1_val;
+  wire [31:0] wakeup_2_val;
+  wire [31:0] wakeup_3_val;
+  wire [31:0] wakeup_0_val;
   
   //Rename stage
   Rename rename (
     .clk(clk),
 	 .reset(reset),
-	 .wakeup_0_active(0), .wakeup_0_tag(0), .wakeup_0_value(0),
-	 .wakeup_1_active(0), .wakeup_1_tag(0), .wakeup_1_value(0),
-	 .wakeup_2_active(0), .wakeup_2_tag(0), .wakeup_2_value(0),
-	 .wakeup_3_active(0), .wakeup_3_tag(0), .wakeup_3_value(0),
+	 .wakeup_0_active(wakeup_0_valid), .wakeup_0_tag(wakeup_0_tag), .wakeup_0_value(wakeup_0_val),
+	 .wakeup_1_active(wakeup_1_valid), .wakeup_1_tag(wakeup_1_tag), .wakeup_1_value(wakeup_1_val),
+	 .wakeup_2_active(wakeup_2_valid), .wakeup_2_tag(wakeup_2_tag), .wakeup_2_value(wakeup_2_val),
+	 .wakeup_3_active(wakeup_3_valid), .wakeup_3_tag(wakeup_3_tag), .wakeup_3_value(wakeup_3_val),
 	 .freed_tag_1(freed_tag_1),
 	 .freed_tag_2(freed_tag_2),
 	 .architectural_rd(rd),
@@ -114,63 +126,174 @@ module TopLevel (
 	 .rs2_ready(rs2_ready),
 	 .rs1_value(rs1_value),
 	 .rs2_value(rs2_value)
+
   );
   
-  
   wire [5:0] ROB_num;
-  
   wire [1:0] FU_num;
-  wire load_store_valid;
-  wire [31:0] issue_rs1_value_0, issue_rs1_value_1, issue_rs1_value_2;
-  wire [31:0] issue_rs2_value_0, issue_rs2_value_1, issue_rs2_value_2;
-  wire [2:0] issue_alu_type_0, issue_alu_type_1, issue_alu_type_2;
-  wire [128:0] current_RS_entry;
+  wire FU1_ready, FU2_ready, FU3_ready;
+  wire issue_0_is_LS, issue_1_is_LS, issue_2_is_LS;
+  wire issue_FU1_valid, issue_FU2_valid, issue_FU3_valid;
+  wire [5:0] issue_0_rd_tag, issue_1_rd_tag, issue_2_rd_tag;
+  wire issue_0_alusrc, issue_1_alusrc, issue_2_alusrc;
+  wire [5:0] issue_0_rob_num, issue_1_rob_num, issue_2_rob_num;
+  wire [31:0] issue_0_rs1_val, issue_1_rs1_val, issue_2_rs1_val;
+  wire [31:0] issue_0_rs2_val, issue_1_rs2_val, issue_2_rs2_val;
+  wire [31:0] issue_0_imm, issue_1_imm, issue_2_imm;
+  wire [3:0] issue_0_alu_type, issue_1_alu_type, issue_2_alu_type;
   
   //Reservation Station:
   ReservationStation RS (
     .clk(clk),
-	 .reset(reset),
-	 .physical_rd(physical_rd),
-	 .physical_rs1(physical_rs1),
-	 .physical_rs2(physical_rs2),
-	 .rs1_ready(rs1_ready),
-	 .rs2_ready(rs2_ready),
-	 .rs1_value(rs1_value),
-	 .rs2_value(rs2_value),
-	 .ROB_num(ROB_num),
-	 .imm(imm),
-	 .LoadStore(LoadStore),
-	 .ALUSrc(ALUSrc),
-	 .RegWrite(RegWrite),
-	 .ALUControl(ALUControl),
-	 .BMS(BMS),
-	 
-	 .FU_num(FU_num),
-	 .load_store_valid(load_store_valid),
-	 .issue_rs1_value_0(issue_rs1_value_0),
-	 .issue_rs1_value_1(issue_rs1_value_1),
-	 .issue_rs1_value_2(issue_rs1_value_2),
-	 .issue_rs2_value_0(issue_rs2_value_0),
-	 .issue_rs2_value_1(issue_rs2_value_1),
-	 .issue_rs2_value_2(issue_rs2_value_2),
-	 .issue_alu_type_0(issue_alu_type_0),
-	 .issue_alu_type_1(issue_alu_type_1),
-	 .issue_alu_type_2(issue_alu_type_2),
-	 .current_RS_entry(current_RS_entry)
+    .reset(reset),
+    .physical_rd(physical_rd),
+    .physical_rs1(physical_rs1),
+    .physical_rs2(physical_rs2),
+    .rs1_ready(rs1_ready),
+    .rs2_ready(rs2_ready),
+    .rs1_value(rs1_value),
+    .rs2_value(rs2_value),
+    .ROB_num(ROB_num),
+    .ALUControl(ALUControl),
+    .imm(imm),
+    .LoadStore(LoadStore),
+    .ALUSrc(ALUSrc),
+    .FU1_ready(FU1_ready),
+    .FU2_ready(FU2_ready),
+    .FU3_ready(FU3_ready),
+
+    .wakeup_1_valid(wakeup_0_valid), 
+    .wakeup_2_valid(wakeup_1_valid), 
+    .wakeup_3_valid(wakeup_2_valid), 
+    .wakeup_4_valid(wakeup_3_valid),
+	 .wakeup_1_tag(wakeup_0_tag), 
+    .wakeup_2_tag(wakeup_1_tag), 
+    .wakeup_3_tag(wakeup_2_tag), 
+    .wakeup_4_tag(wakeup_3_tag),
+	 .wakeup_1_val(wakeup_0_val), 
+    .wakeup_2_val(wakeup_1_val), 
+    .wakeup_3_val(wakeup_2_val), 
+    .wakeup_4_val(wakeup_3_val),
+
+    .FU_num(FU_num),
+    .issue_0_is_LS(issue_0_is_LS), 
+    .issue_1_is_LS(issue_1_is_LS), 
+    .issue_2_is_LS(issue_2_is_LS), 
+    .issue_FU1_valid(issue_FU1_valid), 
+    .issue_FU2_valid(issue_FU2_valid), 
+    .issue_FU3_valid(issue_FU3_valid), 
+    .issue_0_rd_tag(issue_0_rd_tag), 
+    .issue_1_rd_tag(issue_1_rd_tag), 
+    .issue_2_rd_tag(issue_2_rd_tag), 
+    .issue_0_alusrc(issue_0_alusrc), 
+    .issue_1_alusrc(issue_1_alusrc), 
+    .issue_2_alusrc(issue_2_alusrc), 
+    .issue_0_rob_num(issue_0_rob_num), 
+    .issue_1_rob_num(issue_1_rob_num), 
+    .issue_2_rob_num(issue_2_rob_num), 
+    .issue_0_rs1_val(issue_0_rs1_val), 
+    .issue_1_rs1_val(issue_1_rs1_val), 
+    .issue_2_rs1_val(issue_2_rs1_val), 
+    .issue_0_rs2_val(issue_0_rs2_val), 
+    .issue_1_rs2_val(issue_1_rs2_val), 
+    .issue_2_rs2_val(issue_2_rs2_val), 
+    .issue_0_imm(issue_0_imm), 
+    .issue_1_imm(issue_1_imm), 
+    .issue_2_imm(issue_2_imm), 
+  	 .issue_0_alu_type(issue_0_alu_type),
+	 .issue_1_alu_type(issue_1_alu_type),
+	 .issue_2_alu_type(issue_2_alu_type)
   );
   
-  // Reorder buffer:
+  
+  wire wakeup_active;
+  wire enqueue_enable;
+  wire [5:0] wakeup_rob_index;
+  wire [5:0] enqueue_old_tag;
+	
+    // Reorder buffer:
   ReorderBuffer rob(
 	 .clk(clk),
 	 .enqueue_enable(0),
 	 .enqueue_old_tag(0),
-	 .wakeup_active(0),
-	 .wakeup_rob_index(0),
+	 .wakeup_active(0), //TODO: which valid? three potential FU to wakeup from?
+	 .wakeup_rob_index(wakeup_rob_index), 
 
     .next_rob_index(ROB_num),
 	 .freed_tag_1(freed_tag_1),
 	 .freed_tag_2(freed_tag_2)
   );
+  
+	FunctionalUnit fu1(
+		.clk(clk),
+		.reset(reset),
+		.write_enable(issue_FU1_valid),
+		.ALUControl(issue_0_alu_type),
+		.ALUSrc(issue_0_alusrc),
+		.is_for_lsq(issue_0_is_LS),
+		.imm(issue_0_imm),
+		.rs1_value(issue_0_rs1_val),
+		.rs2_value(issue_0_rs2_val),
+		.tag_to_output(issue_0_rd_tag),
+		.rob_index(issue_0_rob_num),
+		
+		.is_available(FU1_ready),
+		.wakeup_active(wakeup_0_valid),
+		.wakeup_rob_index(wakeup_rob_index),
+		.wakeup_tag(wakeup_0_tag),
+		.wakeup_value(wakeup_0_val),
+		.lsq_wakeup_active(lsq_wakeup_active), //TODO
+		.lsq_wakeup_rob_index(lsq_wakeup_rob_index),
+		.lsq_wakeup_value(lsq_wakeup_value) //TODO: up to 3 lsq wakeup too?
+	);
+	
+	FunctionalUnit fu2(
+		.clk(clk),
+		.reset(reset),
+		.write_enable(issue_FU2_valid),
+		.ALUControl(issue_1_alu_type),
+		.ALUSrc(issue_1_alusrc),
+		.is_for_lsq(issue_1_is_LS),
+		.imm(issue_1_imm),
+		.rs1_value(issue_1_rs1_val),
+		.rs2_value(issue_1_rs2_val),
+		.tag_to_output(issue_1_rd_tag),
+		.rob_index(issue_1_rob_num),
+		
+		.is_available(FU2_ready),
+		.wakeup_active(wakeup_1_valid),
+		.wakeup_rob_index(wakeup_rob_index),
+		.wakeup_tag(wakeup_1_tag),
+		.wakeup_value(wakeup_1_val),
+		.lsq_wakeup_active(lsq_wakeup_active), //TODO
+		.lsq_wakeup_rob_index(lsq_wakeup_rob_index),
+		.lsq_wakeup_value(lsq_wakeup_value) //TODO: up to 3 lsq wakeup too?
+	);
+	
+	FunctionalUnit fu3( //TODO: test/make fu1,2,3 parallel
+		.clk(clk),
+		.reset(reset),
+		.write_enable(issue_FU3_valid),
+		.ALUControl(issue_2_alu_type),
+		.ALUSrc(issue_2_alusrc),
+		.is_for_lsq(issue_2_is_LS),
+		.imm(issue_2_imm),
+		.rs1_value(issue_2_rs1_val),
+		.rs2_value(issue_2_rs2_val),
+		.tag_to_output(issue_2_rd_tag),
+		.rob_index(issue_2_rob_num),
+		
+		.is_available(FU3_ready),
+		.wakeup_active(wakeup_2_valid),
+		.wakeup_rob_index(wakeup_rob_index),
+		.wakeup_tag(wakeup_2_tag),
+		.wakeup_value(wakeup_2_val),
+		.lsq_wakeup_active(lsq_wakeup_active), //TODO
+		.lsq_wakeup_rob_index(lsq_wakeup_rob_index),
+		.lsq_wakeup_value(lsq_wakeup_value) //TODO: up to 3 lsq wakeup too?
+	);
+  
+  
   
   // Update PC and run fetch on each positive clock edge until fetch_complete
   always @(posedge clk or posedge reset) begin

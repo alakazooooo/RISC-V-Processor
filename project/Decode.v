@@ -17,9 +17,9 @@ module Decode(
 );
 
 	wire [6:0] opcode_next;
-	wire [4:0] rd_next;
-	wire [4:0] rs1_next;            
-	wire [4:0] rs2_next;         
+	reg [4:0] rd_next;
+	reg [4:0] rs1_next;            
+	reg [4:0] rs2_next;         
 	wire [2:0] func3_next;
 	reg [31:0] imm_next;
 	reg BMS_next;
@@ -33,11 +33,15 @@ module Decode(
 	reg RegWrite_next;
 	reg [3:0] ALUControl_next;
 	
+	wire [4:0] rd_temp;
+	wire [4:0] rs1_temp;            
+	wire [4:0] rs2_temp;  
+	
 	
 	assign opcode_next = instruction[6:0];
-	assign rd_next = instruction[11:7];
-	assign rs1_next = instruction[19:15];
-	assign rs2_next = instruction[24:20];
+	assign rd_temp = instruction[11:7];
+	assign rs1_temp = instruction[19:15];
+	assign rs2_temp = instruction[24:20];
 	assign func3_next = instruction[14:12];
 	
 
@@ -56,12 +60,14 @@ always @(posedge clk) begin
 end
 
 
-//immediate generator, control signals
 always @(*) begin
 
 	case (opcode_next)
 	
 		7'b0000000: begin //NOP
+			rd_next = 0;
+			rs1_next = 0;
+			rs2_next = 0;
 			imm_next = 0;
 			
 			LoadStore_next = 0;
@@ -69,10 +75,13 @@ always @(*) begin
 			RegWrite_next = 0;
 			BMS_next = 0;
 			
-			ALUControl_next = 4'b0000; //NONE
+			ALUControl_next = 4'b0000; //NOP
 		end
 		
 		7'b0110011: begin //R-type (ADD, XOR)
+			rd_next = rd_temp;
+			rs1_next = rs1_temp;
+			rs2_next = rs2_temp;
 			imm_next = 0;
 			
 			LoadStore_next = 0;
@@ -87,6 +96,9 @@ always @(*) begin
 		end
 		
 		7'b0010011: begin //i-type
+			rd_next = rd_temp;
+			rs1_next = rs1_temp;
+			rs2_next = 0;
 			if(func3_next == 101) //SRAI
 				imm_next = {27'b0, imm_i[4:0]}; 
 			else //ADDI, ORI, LB, LW
@@ -108,6 +120,9 @@ always @(*) begin
 		end
 		
 		7'b0000011: begin //LOAD
+			rd_next = rd_temp;
+			rs1_next = rs1_temp;
+			rs2_next = 0;
 			imm_next = {{20{imm_i[11]}}, imm_i};
 			
 			LoadStore_next = 1;
@@ -124,6 +139,9 @@ always @(*) begin
 		end
 		
 		7'b0100011: begin //STORE
+			rd_next = 0;
+			rs1_next = rs1_temp;
+			rs2_next = rs2_temp;
 			imm_next = {{20{imm_s[11]}}, imm_s};
 			
 			LoadStore_next = 1;
@@ -140,6 +158,9 @@ always @(*) begin
 		end
 		
 		7'b0110111: begin //LUI
+			rd_next = rd_temp;
+			rs1_next = 0;
+			rs2_next = 0;
 			imm_next = {imm_u, 12'b0};
 			
 			LoadStore_next = 0;
@@ -147,10 +168,13 @@ always @(*) begin
 			RegWrite_next = 1;
 			BMS_next = 0;
 			
-			ALUControl_next = 4'b0000; //NONE
+			ALUControl_next = 4'b1111; //Don't do anything
 		end
 		
 		default: begin
+			rd_next = 0;
+			rs1_next = 0;
+			rs2_next = 0;
 			imm_next = 0;
 			
 			LoadStore_next = 0;
@@ -158,7 +182,7 @@ always @(*) begin
 			RegWrite_next = 0;
 			BMS_next = 0;
 			
-			ALUControl_next = 4'b0000; //NONE
+			ALUControl_next = 4'b0000; //NOP
 		end
 		
 	endcase

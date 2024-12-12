@@ -30,7 +30,7 @@ reg [31:0] instruction_memory [0:4]; // Array to hold 8 instructions
     // Initialize instructions
     initial begin
         instruction_memory[0] = 32'h00000000; // NOP
-        instruction_memory[1] = 32'h09a06293;
+        instruction_memory[1] = 32'h09a06293; 
 		  instruction_memory[2] = 32'h00106313;
         instruction_memory[3] = 32'h00730e33; 
         instruction_memory[4] = 32'h01ce0eb3; 

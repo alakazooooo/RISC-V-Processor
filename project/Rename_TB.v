@@ -10,9 +10,9 @@ module Rename_TB(clk);
 	
 	output reg clk = 0;
 	reg reset = 0;
-	reg wakeup_active = 0;
-	reg [5:0] wakeup_tag = 0;
-	reg [31:0] wakeup_value = 0;
+	reg wakeup_0_active = 0;
+	reg [5:0] wakeup_0_tag = 0;
+	reg [31:0] wakeup_0_value = 0;
 	reg [4:0] architectural_rd = 0, architectural_rs1 = 0, architectural_rs2 = 0;
 	
 	wire [5:0] physical_rd, physical_rs1, physical_rs2;
@@ -22,9 +22,12 @@ module Rename_TB(clk);
 	Rename uut(
 		.clk(clk),
 		.reset(reset),
-		.wakeup_active(wakeup_active),
-		.wakeup_tag(wakeup_tag),
-		.wakeup_value(wakeup_value),
+		.wakeup_0_active(wakeup_0_active),
+		.wakeup_0_tag(wakeup_0_tag),
+		.wakeup_0_value(wakeup_0_value),
+		.wakeup_1_active(0), .wakeup_1_tag(0), .wakeup_1_value(0),
+		.wakeup_2_active(0), .wakeup_2_tag(0), .wakeup_2_value(0),
+		.wakeup_3_active(0), .wakeup_3_tag(0), .wakeup_3_value(0),
 		.freed_tag_1(6'd0),
 		.freed_tag_2(6'd0),
 		.architectural_rd(architectural_rd),
@@ -88,9 +91,9 @@ module Rename_TB(clk);
 		architectural_rs1 = 0;
 		architectural_rs2 = 1;
 		// Simulate the computation of the first add (generating the first x1) completing.
-		wakeup_active = 1;
-		wakeup_tag = first_x1_tag;
-		wakeup_value = 123;
+		wakeup_0_active = 1;
+		wakeup_0_tag = first_x1_tag;
+		wakeup_0_value = 123;
 		#1;
 		`assert(physical_rs2 == second_x1_tag);
 		`assert(rs1_ready && rs1_value == 0);
@@ -105,9 +108,9 @@ module Rename_TB(clk);
 		architectural_rs1 = 0;
 		architectural_rs2 = 1;
 		// Simulate the computation of the second add (generating the second x1) completing.
-		wakeup_active = 1;
-		wakeup_tag = second_x1_tag;
-		wakeup_value = 456;
+		wakeup_0_active = 1;
+		wakeup_0_tag = second_x1_tag;
+		wakeup_0_value = 456;
 		#1;
 		`assert(physical_rs2 == second_x1_tag);
 		`assert(rs1_ready && rs1_value == 0);
@@ -121,7 +124,7 @@ module Rename_TB(clk);
 		architectural_rd = 0;
 		architectural_rs1 = 0;
 		architectural_rs2 = 1;
-		wakeup_active = 0;
+		wakeup_0_active = 0;
 		#1;
 		`assert(physical_rs2 == second_x1_tag);
 		`assert(rs1_ready && rs1_value == 0);

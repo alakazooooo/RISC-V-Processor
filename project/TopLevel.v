@@ -98,9 +98,10 @@ module TopLevel (
   Rename rename (
     .clk(clk),
 	 .reset(reset),
-	 .wakeup_active(0),
-	 .wakeup_tag(0),
-	 .wakeup_value(0),
+	 .wakeup_0_active(0), .wakeup_0_tag(0), .wakeup_0_value(0),
+	 .wakeup_1_active(0), .wakeup_1_tag(0), .wakeup_1_value(0),
+	 .wakeup_2_active(0), .wakeup_2_tag(0), .wakeup_2_value(0),
+	 .wakeup_3_active(0), .wakeup_3_tag(0), .wakeup_3_value(0),
 	 .freed_tag_1(freed_tag_1),
 	 .freed_tag_2(freed_tag_2),
 	 .architectural_rd(rd),

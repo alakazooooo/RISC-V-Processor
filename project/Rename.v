@@ -5,9 +5,12 @@
 module Rename(
   input clk,
   input reset,
-  input wakeup_active,
-  input [5:0] wakeup_tag,
-  input [31:0] wakeup_value,
+
+  // Wakeup inputs
+  input wakeup_0_active, wakeup_1_active, wakeup_2_active, wakeup_3_active,
+  input [5:0] wakeup_0_tag, wakeup_1_tag, wakeup_2_tag, wakeup_3_tag,
+  input [31:0] wakeup_0_value, wakeup_1_value, wakeup_2_value, wakeup_3_value,
+
   // These inputs are ignored if they are 0. First because we want tag 0 to be exclusively
   // mapped-to by x0, and second because ReorderBuffer uses 0 to mean "not applicable" i.e.
   // not actually freed on this cycle.
@@ -38,20 +41,50 @@ module Rename(
 	assign physical_rs2 = `PHYSICAL_REGISTER_PART(arat[architectural_rs2]);
 	assign physical_rd = architectural_rd == 0 ? 6'd0 : free_pool[free_pool_count - 6'd1];
 	
-	wire wakeup_is_rs1 = wakeup_active && wakeup_tag == physical_rs1;
-	wire wakeup_is_rs2 = wakeup_active && wakeup_tag == physical_rs2;
+	wire any_wakeup_active = wakeup_0_active || wakeup_1_active || wakeup_2_active || wakeup_3_active;
 	
-	assign rs1_ready = `READY_PART(arat[architectural_rs1]) || wakeup_is_rs1;
-	assign rs2_ready = `READY_PART(arat[architectural_rs2]) || wakeup_is_rs2;
+	function [31:0] determine_matching_wakeup_value;
+		input [5:0] tag_to_match;
+		input active_0, active_1, active_2, active_3;
+		input [5:0] tag_0, tag_1, tag_2, tag_3;
+		input [31:0] value_0, value_1, value_2, value_3;
+	begin
+		if (active_0 && tag_0 == tag_to_match) determine_matching_wakeup_value = value_0;
+		else if (active_1 && tag_1 == tag_to_match) determine_matching_wakeup_value = value_1;
+		else if (active_2 && tag_2 == tag_to_match) determine_matching_wakeup_value = value_2;
+		else if (active_3 && tag_3 == tag_to_match) determine_matching_wakeup_value = value_3;
+		else determine_matching_wakeup_value = 32'hBAD0BAD0;
+	end
+	endfunction
+	
+	wire any_wakeup_is_rs1 = (wakeup_0_active && wakeup_0_tag == physical_rs1) ||
+	                         (wakeup_1_active && wakeup_1_tag == physical_rs1) ||
+									 (wakeup_2_active && wakeup_2_tag == physical_rs1) ||
+									 (wakeup_3_active && wakeup_3_tag == physical_rs1);
+	wire any_wakeup_is_rs2 = (wakeup_0_active && wakeup_0_tag == physical_rs2) ||
+	                         (wakeup_1_active && wakeup_1_tag == physical_rs2) ||
+									 (wakeup_2_active && wakeup_2_tag == physical_rs2) ||
+									 (wakeup_3_active && wakeup_3_tag == physical_rs2);
+	
+	assign rs1_ready = `READY_PART(arat[architectural_rs1]) || any_wakeup_is_rs1;
+	assign rs2_ready = `READY_PART(arat[architectural_rs2]) || any_wakeup_is_rs2;
 	assign rs1_value = !rs1_ready
 	                     ? 32'hffffffff
-								: (wakeup_is_rs1
-								    ? wakeup_value
+								: (any_wakeup_is_rs1
+								    ? determine_matching_wakeup_value(physical_rs1,
+										wakeup_0_active, wakeup_1_active, wakeup_2_active, wakeup_3_active,
+										wakeup_0_tag, wakeup_1_tag, wakeup_2_tag, wakeup_3_tag,
+										wakeup_0_value, wakeup_1_value, wakeup_2_value, wakeup_3_value
+										)
 									 : `VALUE_PART(arat[architectural_rs1]));
 	assign rs2_value = !rs2_ready
 	                     ? 32'hffffffff
-								: (wakeup_is_rs2
-								    ? wakeup_value
+								: (any_wakeup_is_rs2
+								    ? determine_matching_wakeup_value(physical_rs2,
+										wakeup_0_active, wakeup_1_active, wakeup_2_active, wakeup_3_active,
+										wakeup_0_tag, wakeup_1_tag, wakeup_2_tag, wakeup_3_tag,
+										wakeup_0_value, wakeup_1_value, wakeup_2_value, wakeup_3_value
+										)
 									 : `VALUE_PART(arat[architectural_rs2]));
 	
 	always @(posedge clk or posedge reset) begin : clk_handler
@@ -104,16 +137,37 @@ module Rename(
 			end
 			free_pool_count <= free_pool_count + (freed_tag_1 != 0) + (freed_tag_2 != 0) - (architectural_rd != 0);
 			
-			if (wakeup_active) begin : handle_wakeup
+			if (any_wakeup_active) begin : handle_wakeup
 				integer i;
 				// Be careful to start the for-loop at 1 because we want x0 to always have a value of 0.
 				// Broadcasts to register p0 should have no effect.
 				for (i = 1; i < NUM_ARCHITECTURAL_REGISTERS; i = i + 1) begin
-					if (`PHYSICAL_REGISTER_PART(arat[i]) == wakeup_tag) begin
+					if (wakeup_0_active && `PHYSICAL_REGISTER_PART(arat[i]) == wakeup_0_tag) begin
 						if (`READY_PART(arat[i])) begin
 							$fatal("Got a wakeup for a register that had already been woken up; double-wakeup?");
 						end
-						`VALUE_PART(arat[i]) <= wakeup_value;
+						`VALUE_PART(arat[i]) <= wakeup_0_value;
+						`READY_PART(arat[i]) <= 1'b1;
+					end
+					else if (wakeup_1_active && `PHYSICAL_REGISTER_PART(arat[i]) == wakeup_1_tag) begin
+						if (`READY_PART(arat[i])) begin
+							$fatal("Got a wakeup for a register that had already been woken up; double-wakeup?");
+						end
+						`VALUE_PART(arat[i]) <= wakeup_1_value;
+						`READY_PART(arat[i]) <= 1'b1;
+					end
+					else if (wakeup_2_active && `PHYSICAL_REGISTER_PART(arat[i]) == wakeup_2_tag) begin
+						if (`READY_PART(arat[i])) begin
+							$fatal("Got a wakeup for a register that had already been woken up; double-wakeup?");
+						end
+						`VALUE_PART(arat[i]) <= wakeup_2_value;
+						`READY_PART(arat[i]) <= 1'b1;
+					end
+					else if (wakeup_3_active && `PHYSICAL_REGISTER_PART(arat[i]) == wakeup_3_tag) begin
+						if (`READY_PART(arat[i])) begin
+							$fatal("Got a wakeup for a register that had already been woken up; double-wakeup?");
+						end
+						`VALUE_PART(arat[i]) <= wakeup_3_value;
 						`READY_PART(arat[i]) <= 1'b1;
 					end
 				end
@@ -130,9 +184,13 @@ module Rename(
 	//  - no physical register should be mapped-to in the A-RAT and also be in the free pool.
 	//  - the free pool stack can only have at most FREE_POOL_SIZE items.
 	//  - p0 is not in the free pool.
+	//  - no wakeups can have the same tag.
 	always @(posedge clk) begin : check_invariants
 		integer i;
 		integer j;
+		reg [5:0] woken_up_tags [3:0];
+		integer num_woken_up_tags;
+		
 		if (free_pool_count > FREE_POOL_SIZE) begin
 			$fatal("Free pool count invariant failed");
 		end
@@ -146,6 +204,32 @@ module Rename(
 			end
 			if (free_pool[i] == 0) begin
 				$fatal("Rename invariant failed: tag 0 should not be in the free pool");
+			end
+		end
+		
+		num_woken_up_tags = 0;
+		if (wakeup_0_active) begin
+			woken_up_tags[num_woken_up_tags] = wakeup_0_tag;
+			num_woken_up_tags = num_woken_up_tags + 1;
+		end
+		if (wakeup_1_active) begin
+			woken_up_tags[num_woken_up_tags] = wakeup_1_tag;
+			num_woken_up_tags = num_woken_up_tags + 1;
+		end
+		if (wakeup_2_active) begin
+			woken_up_tags[num_woken_up_tags] = wakeup_2_tag;
+			num_woken_up_tags = num_woken_up_tags + 1;
+		end
+		if (wakeup_3_active) begin
+			woken_up_tags[num_woken_up_tags] = wakeup_3_tag;
+			num_woken_up_tags = num_woken_up_tags + 1;
+		end
+		// The i < 4 and j < 4 guards are so it can synthesize.
+		for (i = 0; i < num_woken_up_tags && i < 4; i = i + 1) begin
+			for (j = i + 1; j < num_woken_up_tags && j < 4; j = j + 1) begin
+				if (woken_up_tags[i] == woken_up_tags[j]) begin
+					$fatal("Rename invariant failed: multiple wakeups arrived for the same tag.");
+				end
 			end
 		end
 	end

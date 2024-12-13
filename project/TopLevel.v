@@ -26,8 +26,8 @@ module TopLevel (
 
     // Read the hex file
     //$readmemh("demo.txt", hex_data);
-	 $readmemh("C:/Users/lydia/RISC-V-Processor/project/final-inst.txt", hex_data);
-    //$readmemh("c:/Users/Zhang/Documents/School/ECE M116C/Honors Seminar/RISC-V-Processor/project/demo.txt", hex_data);
+	 //$readmemh("C:/Users/lydia/RISC-V-Processor/project/final-inst.txt", hex_data);
+    $readmemh("c:/Users/Zhang/Documents/School/ECE M116C/Honors Seminar/RISC-V-Processor/project/final-inst.txt", hex_data);
 	 
     instruction_count = 0;
     
@@ -292,6 +292,43 @@ module TopLevel (
 		.lsq_wakeup_rob_index(lsq_wakeup_rob_index),
 		.lsq_wakeup_value(lsq_wakeup_value) //TODO: up to 3 lsq wakeup too?
 	);
+  
+  
+  
+  wire [2:0] FU_output = {wakeup_2_valid, wakeup_1_valid, wakeup_0_valid};
+  
+  LoadStoreQueue LSQ (
+	.clk(clk),
+	.LoadStore(LoadStore),
+	.RegWrite(RegWrite),
+	.ROB_index(ROB_num),
+	.store_rs2_tag(physical_rs2),
+	.store_rs2_ready(rs2_ready),
+	.store_rs2_value(rs2_value),
+	.load_rd_tag(physical_rd),
+	.BMS(BMS),
+	.FU_output({FU_output}),
+	.FU_1_address(wakeup_0_val),
+	.FU_2_address(wakeup_1_val),
+	.FU_3_address(wakeup_2_val),
+	.FU_1_ROB_index(wakeup_rob_index),
+	.FU_2_ROB_index(wakeup_rob_index),
+	.FU_3_ROB_index(wakeup_rob_index),
+	.wakeup_1_valid(wakeup_0_valid),
+	.wakeup_2_valid(wakeup_1_valid),
+	.wakeup_3_valid(wakeup_2_valid),
+	.wakeup_1_tag(wakeup_0_tag),
+	.wakeup_2_tag(wakeup_1_tag),
+	.wakeup_3_tag(wakeup_2_tag),
+	.wakeup_1_val(wakeup_0_val),
+	.wakeup_2_val(wakeup_1_val),
+	.wakeup_3_val(wakeup_2_val),
+	
+	.forward_rd_value(wakeup_3_val),
+	.forward_rd_tag(wakeup_3_tag),
+	.forward_rd_valid(wakeup_3_valid)
+	
+  );
   
   
   

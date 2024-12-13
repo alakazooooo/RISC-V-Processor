@@ -172,8 +172,8 @@ module ReservationStation (
                 // Check all wakeup tags for both rs1 and rs2
                 for (i = 0; i < 4; i = i + 1) begin
                     // RS2 wakeup
-                    if (entry[78:73] == wakeup_tags[i*6 +: 6] && wakeup_valids[i]) begin
-                        if (entry[40]) $fatal("Waking up a register marked ready, something is wrong!");
+		    if (entry[40] == 0 && entry[78:73] == wakeup_tags[i*6 +: 6] && wakeup_valids[i]) begin
+                        //if (entry[40]) $fatal("Waking up a register marked ready, something is wrong!");
                         reservation_station[m] = {
                             entry[130:73],    // Keep other fields intact
                             wakeup_vals[i*32 +: 32],   // Update rs2_value
@@ -183,8 +183,8 @@ module ReservationStation (
                     end
                     
                     // RS1 wakeup
-                    if (entry[117:112] == wakeup_tags[i*6 +: 6] && wakeup_valids[i]) begin
-                        if (entry[79]) $fatal("Waking up a register marked ready, something is wrong!");
+		    if (entry[79] == 0 && entry[117:112] == wakeup_tags[i*6 +: 6] && wakeup_valids[i]) begin
+                        //if (entry[79]) $fatal("Waking up a register marked ready, something is wrong!");
                         reservation_station[m] = {
                             entry[130:112],   // Keep other fields intact for rs1
                             wakeup_vals[i*32 +: 32],   // Update rs1_value

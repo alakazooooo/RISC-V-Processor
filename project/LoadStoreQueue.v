@@ -6,78 +6,223 @@ module LoadStoreQueue (
 	input LoadStore, //1=Load/Store, 0=other
 	input RegWrite, //1=load, 0=store
 	input [5:0] ROB_index, //ROB index of input instruction
-	input [31:0] store_rs2_value, //rs1 value of store instr
+	input [5:0] store_rs2_tag, //rs2 tag
+	input [5:0] store_rs2_ready, //rs2 value ready?
+	input [31:0] store_rs2_value, //rs2 value of store instr
 	input [5:0] load_rd_tag, //rd tag of load instr
 	input BMS, //1=byte, 0=word
 	
-	input FU_output, //if FU has an output for LSQ
-	input [31:0] FU_address, //address output by FU
-	input [5:0] FU_ROB_index, //ROB index corresponding to FU output
+	input [2:0] FU_output, //if FU has an output for LSQ (one-hot encoding)
+	input [31:0] FU_1_address, //address output by FU
+	input [31:0] FU_2_address,
+	input [31:0] FU_3_address,
+	input [5:0] FU_1_ROB_index, //ROB index corresponding to FU output
+	input [5:0] FU_2_ROB_index,
+	input [5:0] FU_3_ROB_index,
 	
-	input [5:0] retire_ROB_index, //ROB index of retired
+	input [5:0] retire_ROB_index_1, //ROB index of retired instructions
+	input [5:0] retire_ROB_index_2,
 	
-	output [31:0] forward_rd_value, //load rd value being forwarded
-	output [5:0] forward_rd_tag //load rd tag being forwarded
+	input wakeup_1_valid, wakeup_2_valid, wakeup_3_valid,
+	input [5:0] wakeup_1_tag, wakeup_2_tag, wakeup_3_tag,
+	input [31:0] wakeup_1_val, wakeup_2_val, wakeup_3_val
+
+	//output [31:0] forward_rd_value[2:0], //load rd value being forwarded
+	//output [5:0] forward_rd_tag[2:0], //load rd tag being forwarded
+	
+	//output [5:0] completed_ROB_index [1:0] //ROB index of L/S instructions that should be retired
 );
 
+	//TODO:
+	//Inputs and outputs to memory module
+	//handling load instruction that can't find matching store value (need to access memory)
+	//handling retiring
+	//handling LB and SB stuff
+	//store value wakeup
+	
 	
 	parameter LSQ_SIZE = 16;
-	parameter LSQ_WIDTH = 112; //todo
+	parameter LSQ_WIDTH = 120;
 	
 	reg [LSQ_WIDTH-1:0] LSQ [LSQ_SIZE-1:0];
 	reg [4:0] LSQ_count = 0;
 	reg [3:0] LSQ_tail = 0;
 	wire [3:0] LSQ_head = LSQ_tail >= LSQ_count ? (LSQ_tail - LSQ_count) : (LSQ_SIZE - LSQ_count + LSQ_tail);
 	
-	reg [LSQ_WIDTH-1:0] LSQ_input = (LSQ_WIDTH)'d0;
 	reg [3:0] LSQ_update_index; //index of LSQ instruction begin updated
 	reg [3:0] index;
 	reg [4:0] search_size;
+
+		
 	
-	integer i, j;
+	integer i, j, FU_num;
+	
+	//FU stuff
+	wire [31:0] FU_addresses [2:0];
+	wire [5:0] FU_ROBs [2:0];
+	
+	assign FU_addresses[0] = FU_1_address;
+	assign FU_addresses[1] = FU_2_address;
+	assign FU_addresses[2] = FU_3_address;
+	assign FU_ROBs[0] = FU_1_ROB_index;
+	assign FU_ROBs[1] = FU_2_ROB_index;
+	assign FU_ROBs[2] = FU_3_ROB_index;
+	
+	
+	//wakeup stuff
+	wire [5:0] wakeup_tags [2:0];
+	wire [32:0] wakeup_vals [2:0] ;
+	wire [2:0] wakeup_valids;
+	
+	assign wakeup_tags[0] = wakeup_1_tag;
+	assign wakeup_tags[1] = wakeup_2_tag;
+	assign wakeup_tags[2] = wakeup_3_tag;
+	
+	assign wakeup_vals[0] = wakeup_1_val;
+	assign wakeup_vals[1] = wakeup_2_val;
+	assign wakeup_vals[2] = wakeup_3_val;
+	
+	assign wakeup_valids[0] = wakeup_1_valid;
+	assign wakeup_valids[1] = wakeup_2_valid;
+	assign wakeup_valids[2] = wakeup_3_valid;
+	
+	
+	//memory stuff
+	reg [31:0] mem_address;
+	reg [31:0] mem_store_value;
+	reg mem_BMS;
+	reg mem_LS;
+	reg mem_valid;
+	
+	wire [31:0] mem_addr_out;
+	wire [31:0] mem_load_value_out;
+	wire mem_LS_out;
+	wire mem_valid_out;
+	
+	//clear LSQ on startup
+	initial begin
+		for (i = 0; i < LSQ_SIZE; i = i + 1) begin
+			LSQ[i] = 0;
+		end
+	end
+	
 	
 	always @ (posedge clk) begin
-		if (LoadStore) begin //add new instruction into LSQ
+		if (LoadStore) begin //add new instruction into 
 			LSQ[LSQ_tail][0] <= RegWrite; //Load or Store
 			LSQ[LSQ_tail][1] <= BMS; //Byte or Word
 			LSQ[LSQ_tail][2] <= 0; //memory ready
 			LSQ[LSQ_tail][34:3] <= 32'd0; //memory address
 			LSQ[LSQ_tail][40:35] <= ROB_index;
-			LSQ[LSQ_tail][72:41] <= store_rs2_value;
-			LSQ[LSQ_tail][78:73] <= load_rd_tag;
-			LSQ[LSQ_tail][79] <= 0; //rd ready
-			LSQ[LSQ_tail][111:80] <= 32'd0; //rd value (load)
+			LSQ[LSQ_tail][46:41] <= store_rs2_tag;
+			LSQ[LSQ_tail][47] <= store_rs2_ready;
+			LSQ[LSQ_tail][79:48] <= store_rs2_value;
+			LSQ[LSQ_tail][85:80] <= load_rd_tag;
+			LSQ[LSQ_tail][86] <= 0; //rd ready
+			LSQ[LSQ_tail][118:87] <= 32'd0; //rd value (load)
+			LSQ[LSQ_tail][119] <= 1; //valid entry
 			
 			LSQ_tail <= (LSQ_tail < LSQ_SIZE - 1) ? (LSQ_tail + 4'd1) : 4'd0;
 			LSQ_count <= LSQ_count + 1;
 		end
 		
-		if (FU_output) begin //if FU has address for LSQ
-			LSQ_update_index = 0;
-			for (i = 0; i < LSQ_SIZE; i = i + 1) begin //search entire LSQ
-				if (LSQ[i][40:35] == FU_ROB_index && LSQ_update_index == 0) begin //Find the right instruction
-					LSQ[i][34:3] <= FU_address;
-					LSQ[i][2] <= 1; //address now valid
-					LSQ_update_index = i;
-					
-					if (LSQ[i][0]) begin //Load
-						for (j = 0; j < LSQ_SIZE; j = j + 1) begin //search for matching address
-							index = (LSQ_head + j) % LSQ_SIZE;
-							search_size = (LSQ_head < i) ? (i - LSQ_head) : (i + LSQ_size - LSQ_head);
-							if(j < search_size) begin //search from LSQ_head to i
-								if (LSQ[j][34:3] == FU_address && ~LSQ[j][0]) begin //found matching address store
-									LSQ[i][111:80] = LSQ[j][72:41]; //forward value from store to load
-									LSQ[i][79] = 1; //rd ready
-									
-									forward_rd_value = LSQ[j][72:41]; //forwarded rd value
-									forward_rd_tag = LSQ[i][78:73]; //forwarded rd tag
+		
+		//Input FU outputted addresses in LSQ, and search for load values from existing stores
+		for (FU_num = 0; FU_num < 3; FU_num = FU_num + 1) begin //check outputs of each FU
+			
+			if (FU_output[FU_num]) begin //if FU has address for LSQ
+				LSQ_update_index = 0;
+				for (i = 0; i < LSQ_SIZE; i = i + 1) begin //search entire LSQ
+					if (LSQ[i][40:35] == FU_ROBs[FU_num] && LSQ_update_index == 0) begin //Find the right instruction
+						LSQ[i][34:3] <= FU_addresses[FU_num];
+						LSQ[i][2] <= 1; //address now valid
+						LSQ_update_index = i;
+						
+						if (LSQ[i][0]) begin //LOAD
+							for (j = 0; j < LSQ_SIZE; j = j + 1) begin //search for matching address
+								index = (LSQ_head + j) % LSQ_SIZE; //start at head index
+								search_size = (LSQ_head < i) ? (i - LSQ_head) : (i + LSQ_SIZE - LSQ_head);
+								if(j < search_size && LSQ[index][119]) begin //search from LSQ_head to i
+									if (LSQ[index][34:3] == FU_addresses[FU_num] && ~LSQ[index][0] && LSQ[index][47]) begin //found matching address store
+										LSQ[i][118:87] = LSQ[index][79:48]; //forward value from store to load
+										LSQ[i][79] = 1; //rd ready
+										
+										//forward_rd_value[FU_num] = LSQ[index][72:41]; //forwarded rd value
+										//forward_rd_tag[FU_num] = LSQ[i][78:73]; //forwarded rd tag
+										
+										
+									end
 								end
 							end
+							
 						end
 					end
 				end
 			end
 		end
+	end
+	
+	
+	integer x, y;
+	reg [3:0] index2;
+	
+	//retiring instructions
+	always @ (posedge clk) begin
+	
+		for (x = 0; x < LSQ_SIZE; x = x + 1) begin //search for matching address
+			index2 = (LSQ_head + x) % LSQ_SIZE; //start at head index
+			if (x < LSQ_count && LSQ[x][119]) begin
+				if (LSQ[x][40:35] == retire_ROB_index_1 || LSQ[x][40:35] == retire_ROB_index_2) begin
+					if (LSQ[x][0]) begin //LOAD
+						LSQ[x] = 0;
+					end
+					else if (~LSQ[x][0]) begin //STORE
+						//SEND TO MEMORY
+					end
+				end
+			end
+		end
+	end
+	
+	
+	
+	integer m, n;
+	
+	//wakeup forwarding logic
+	always @ ( posedge clk) begin
+
+		for (m = 0; m < LSQ_SIZE; m = m + 1) begin
+			if(LSQ[m][119] && ~LSQ[m][0] && ~LSQ[m][47]) begin //if valid store w/ rs2 not ready
+				for (n = 0; n < 3; n = n + 1) begin
+					if (wakeup_valids[n]) begin
+						if(LSQ[m][46:41] == wakeup_tags[n]) begin //matching tags
+							LSQ[m][79:48] = wakeup_vals[n];
+							LSQ[m][47] = 1;
+						end
+					end
+				end
+			end
+		
+		end
+	
+	end
+	
+	
+	
+	//Memory access
+	
+	
+	Memory main_memory(clk, mem_address, mem_store_value, mem_BMS, 
+							mem_LS, mem_valid, mem_addr_out, mem_load_value_out, 
+							mem_LS_out, mem_valid_out);
+	
+	integer o,p;
+	
+	always @ (posedge clk) begin
+	
+		
+	
+	
 	
 	end
 	

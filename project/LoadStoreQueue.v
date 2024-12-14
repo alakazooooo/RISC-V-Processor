@@ -120,6 +120,8 @@ module LoadStoreQueue (
 	
 	always @ (posedge clk) begin
 	
+	forward_rd_valid = 0;
+	
 	//wakeup logic
 	for (m = 0; m < LSQ_SIZE; m = m + 1) begin
 			if(LSQ[m][119] && ~LSQ[m][0] && ~LSQ[m][47]) begin //if valid store w/ rs2 not ready
@@ -185,6 +187,11 @@ module LoadStoreQueue (
 										if (LSQ[index][47]) begin//if store value ready
 											LSQ[i][118:87] = LSQ[index][79:48]; //forward value from store to load
 											LSQ[i][79] = 1; //rd ready
+											
+											forward_rd_value = LSQ[i][118:87];
+											forward_rd_tag = LSQ[i][85:80];
+											LSQ[i][121] = 1;
+											forward_rd_valid = 1;
 										end
 										else begin //need to stall load until value ready
 											LSQ[i][120] = 1; //stall flag
@@ -202,13 +209,15 @@ module LoadStoreQueue (
 		
 		
 		//forward logic
-		forward_rd_valid = 0;
-		for (p = 0; p < LSQ_SIZE; p = p + 1) begin
-			index3 = (LSQ_head + p) % LSQ_SIZE; //start at head index
-			if (~forward_rd_valid && LSQ[p][119] && LSQ[p][0] && ~LSQ[p][121] && LSQ[p][86]) begin
-				forward_rd_value = LSQ[p][118:87];
-				forward_rd_tag = LSQ[p][85:80];
-				LSQ[p][121] = 1;
+		if (~forward_rd_valid) begin //if haven't forwarded anything yet
+		
+			for (p = 0; p < LSQ_SIZE; p = p + 1) begin
+				index3 = (LSQ_head + p) % LSQ_SIZE; //start at head index
+				if (~forward_rd_valid && LSQ[p][119] && LSQ[p][0] && ~LSQ[p][121] && LSQ[p][86]) begin
+					forward_rd_value = LSQ[p][118:87];
+					forward_rd_tag = LSQ[p][85:80];
+					LSQ[p][121] = 1;
+				end
 			end
 		end
 		

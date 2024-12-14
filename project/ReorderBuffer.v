@@ -1,6 +1,42 @@
 `define COMPLETED_PART(row) row[0]
 `define OLD_TAG_PART(row) row[6:1]
 
+/*
+`define do_wakeup_for(wakeup_num) \
+	if (rob_count < ROB_SIZE) begin \
+		if (rob_head <= rob_tail) begin \
+			if (!(rob_head <= wakeup_``wakeup_num``_rob_index && wakeup_``wakeup_num``_rob_index < rob_tail)) begin \
+				$fatal("Got a wakeup at a ROB index outside of the queue bounds (case 1)"); \
+			end \
+		end else begin \
+			if (rob_tail <= wakeup_``wakeup_num``_rob_index && wakeup_``wakeup_num``_rob_index < rob_head) begin \
+				$fatal("Got a wakeup at a ROB index outside of the queue bounds (case 2)"); \
+			end \
+		end \
+	end \
+	if (`COMPLETED_PART(rob[wakeup_``wakeup_num``_rob_index])) begin \
+		$fatal("Got a wakeup for an ROB entry that had already been completed; double-wakeup?"); \
+	end \
+	`COMPLETED_PART(rob[wakeup_``wakeup_num``_rob_index]) <= 1'b1;
+*/
+`define do_wakeup_for(wakeup_rob_index) \
+	if (rob_count < ROB_SIZE) begin \
+		if (rob_head <= rob_tail) begin \
+			if (!(rob_head <= wakeup_rob_index && wakeup_rob_index < rob_tail)) begin \
+				$fatal("Got a wakeup at a ROB index outside of the queue bounds (case 1)"); \
+			end \
+		end else begin \
+			if (rob_tail <= wakeup_rob_index && wakeup_rob_index < rob_head) begin \
+				$fatal("Got a wakeup at a ROB index outside of the queue bounds (case 2)"); \
+			end \
+		end \
+	end \
+	if (`COMPLETED_PART(rob[wakeup_rob_index])) begin \
+		$fatal("Got a wakeup for an ROB entry that had already been completed; double-wakeup?"); \
+	end \
+	`COMPLETED_PART(rob[wakeup_rob_index]) <= 1'b1;
+
+
 // This ROB is simplified compared to a full-featured speculative ROB
 // because without jumps and branches, we're just writing values directly to the A-RAT.
 // So this doesn't need to control anything about the register values and
@@ -11,8 +47,8 @@
 module ReorderBuffer(
   input clk,
   input enqueue_enable, input [5:0] enqueue_old_tag,
-  input wakeup_active,
-  input [5:0] wakeup_rob_index,
+  input wakeup_0_active, wakeup_1_active, wakeup_2_active, wakeup_3_active,
+  input [5:0] wakeup_0_rob_index, wakeup_1_rob_index, wakeup_2_rob_index, wakeup_3_rob_index,
   
   // The index where the next entry in the ROB will be located.
   output wire [5:0] next_rob_index,
@@ -55,23 +91,19 @@ module ReorderBuffer(
 	assign freed_tag_2 = num_retirable_entries >= 2 ? `OLD_TAG_PART(rob[rob_next_after_head]) : 6'd0;
 	
 	always @(posedge clk) begin
-		if (wakeup_active) begin
-			if (rob_count < ROB_SIZE) begin
-				if (rob_head <= rob_tail) begin
-					if (!(rob_head <= wakeup_rob_index && wakeup_rob_index < rob_tail)) begin
-						$fatal("Got a wakeup at a ROB index outside of the queue bounds (case 1)");
-					end
-				end else begin
-					if (rob_tail <= wakeup_rob_index && wakeup_rob_index < rob_head) begin
-						$fatal("Got a wakeup at a ROB index outside of the queue bounds (case 2)");
-					end
-				end
-			end
-			if (`COMPLETED_PART(rob[wakeup_rob_index])) begin
-				$fatal("Got a wakeup for an ROB entry that had already been completed; double-wakeup?");
-			end
-			`COMPLETED_PART(rob[wakeup_rob_index]) <= 1'b1;
+		if (wakeup_0_active) begin
+			`do_wakeup_for(wakeup_0_rob_index)
 		end
+		if (wakeup_1_active) begin
+			`do_wakeup_for(wakeup_1_rob_index)
+		end
+		if (wakeup_2_active) begin
+			`do_wakeup_for(wakeup_2_rob_index)
+		end
+		if (wakeup_3_active) begin
+			`do_wakeup_for(wakeup_3_rob_index)
+		end
+		
 		if (enqueue_enable) begin
 			rob[rob_tail] <= {enqueue_old_tag, 1'b0};
 			rob_tail <= (rob_tail < ROB_SIZE - 1) ? (rob_tail + 6'd1) : 6'd0;

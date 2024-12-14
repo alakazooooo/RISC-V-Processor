@@ -206,24 +206,26 @@ module TopLevel (
   );
   
   
-  wire wakeup_active;
   wire enqueue_enable;
-  wire [5:0] wakeup_rob_index;
+  wire [5:0] wakeup_0_rob_index, wakeup_1_rob_index, wakeup_2_rob_index;
   wire [5:0] enqueue_old_tag;
 	
-    // Reorder buffer:
-  ReorderBuffer rob(
-	 .clk(clk),
-	 .enqueue_enable(0),
-	 .enqueue_old_tag(0),
-	 .wakeup_active(0), //TODO: which valid? three potential FU to wakeup from?
-	 .wakeup_rob_index(wakeup_rob_index), 
+	// Reorder Buffer:
+	ReorderBuffer rob(
+		.clk(clk),
+		.enqueue_enable(0),
+		.enqueue_old_tag(0),
+		.wakeup_0_active(wakeup_0_valid), .wakeup_0_rob_index(wakeup_0_rob_index),
+		.wakeup_1_active(wakeup_1_valid), .wakeup_1_rob_index(wakeup_1_rob_index),
+		.wakeup_2_active(wakeup_2_valid), .wakeup_2_rob_index(wakeup_2_rob_index),
+		// TODO wire up this fourth wakeup input to outputs of the LSQ
+		.wakeup_3_active(0), .wakeup_3_rob_index(0),
 
-    .next_rob_index(ROB_num),
-	 .freed_tag_1(freed_tag_1),
-	 .freed_tag_2(freed_tag_2)
-  );
-  
+		.next_rob_index(ROB_num),
+		.freed_tag_1(freed_tag_1),
+		.freed_tag_2(freed_tag_2)
+	);
+	
 	FunctionalUnit fu1(
 		.clk(clk),
 		.reset(reset),
@@ -239,7 +241,7 @@ module TopLevel (
 		
 		.is_available(FU1_ready),
 		.wakeup_active(wakeup_0_valid),
-		.wakeup_rob_index(wakeup_rob_index),
+		.wakeup_rob_index(wakeup_0_rob_index),
 		.wakeup_tag(wakeup_0_tag),
 		.wakeup_value(wakeup_0_val),
 		.lsq_wakeup_active(lsq_wakeup_active), //TODO
@@ -262,7 +264,7 @@ module TopLevel (
 		
 		.is_available(FU2_ready),
 		.wakeup_active(wakeup_1_valid),
-		.wakeup_rob_index(wakeup_rob_index),
+		.wakeup_rob_index(wakeup_1_rob_index),
 		.wakeup_tag(wakeup_1_tag),
 		.wakeup_value(wakeup_1_val),
 		.lsq_wakeup_active(lsq_wakeup_active), //TODO
@@ -285,7 +287,7 @@ module TopLevel (
 		
 		.is_available(FU3_ready),
 		.wakeup_active(wakeup_2_valid),
-		.wakeup_rob_index(wakeup_rob_index),
+		.wakeup_rob_index(wakeup_2_rob_index),
 		.wakeup_tag(wakeup_2_tag),
 		.wakeup_value(wakeup_2_val),
 		.lsq_wakeup_active(lsq_wakeup_active), //TODO
@@ -311,9 +313,9 @@ module TopLevel (
 	.FU_1_address(wakeup_0_val),
 	.FU_2_address(wakeup_1_val),
 	.FU_3_address(wakeup_2_val),
-	.FU_1_ROB_index(wakeup_rob_index),
-	.FU_2_ROB_index(wakeup_rob_index),
-	.FU_3_ROB_index(wakeup_rob_index),
+	.FU_1_ROB_index(wakeup_0_rob_index),
+	.FU_2_ROB_index(wakeup_1_rob_index),
+	.FU_3_ROB_index(wakeup_2_rob_index),
 	.wakeup_1_valid(wakeup_0_valid),
 	.wakeup_2_valid(wakeup_1_valid),
 	.wakeup_3_valid(wakeup_2_valid),

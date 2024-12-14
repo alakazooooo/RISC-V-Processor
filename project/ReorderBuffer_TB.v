@@ -20,8 +20,11 @@ module ReorderBuffer_TB(clk);
 	ReorderBuffer #(.ROB_SIZE(4)) uut(
 		.clk(clk),
 		.enqueue_enable(enqueue_enable), .enqueue_old_tag(enqueue_old_tag),
-		.wakeup_active(wakeup_active),
-		.wakeup_rob_index(wakeup_rob_index),
+		.wakeup_0_active(wakeup_active),
+		.wakeup_0_rob_index(wakeup_rob_index),
+		.wakeup_1_active(0), .wakeup_1_rob_index(0),
+		.wakeup_2_active(0), .wakeup_2_rob_index(0),
+		.wakeup_3_active(0), .wakeup_3_rob_index(0),
 		.next_rob_index(next_rob_index),
 		.freed_tag_1(freed_tag_1), .freed_tag_2(freed_tag_2)
 	);

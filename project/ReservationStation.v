@@ -72,7 +72,7 @@ module ReservationStation (
 	end
 	endfunction
 
-    always @(posedge clk) begin
+    always @(posedge clk or posedge reset) begin
         if (reset) begin
             // Reset all registers
             {FU_num, count, valid_bitmap, issue_counter} <= 0;

@@ -11,6 +11,7 @@ module LoadStoreQueue_TB(
 
     // Testbench variables and signals
     reg clk;
+	 reg reset;
     reg LoadStore;
     reg RegWrite;
     reg [5:0] ROB_index;
@@ -87,6 +88,7 @@ module LoadStoreQueue_TB(
     initial begin
         // Initialize inputs
 		  clk = 0;
+		  reset = 0;
         LoadStore = 0;
         RegWrite = 0;
         ROB_index = 0;
@@ -157,6 +159,7 @@ module LoadStoreQueue_TB(
         store_rs2_tag = 6'd0;
         store_rs2_ready = 0;
         store_rs2_value = 32'h0;
+		  load_rd_tag = 6'd2;
 		  BMS = 0;
 		  wakeup_1_valid = 0;
 			wakeup_2_valid = 1;
@@ -180,8 +183,27 @@ module LoadStoreQueue_TB(
 			FU_1_valid = 0;
 		  
 		  
-		  #20;
+		  #10;
 		  
+		  retire_ROB_index_1 = 6'd4;
+		  
+		  #10;
+		  retire_ROB_index_1 = 6'd0;
+		  retire_ROB_index_2 = 6'd6;
+		  
+		  #10;
+		  
+		  //SB x6, 12(x0)
+        LoadStore = 1;
+        RegWrite = 0; // Store
+        ROB_index = 6'd8;
+        store_rs2_tag = 6'd6;
+        store_rs2_ready = 0;
+        store_rs2_value = 32'h0;
+		  BMS = 1;
+		  
+		  
+		  #20;
 		  
         $stop;
     end

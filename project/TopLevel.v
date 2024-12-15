@@ -305,6 +305,7 @@ module TopLevel (
  
   LoadStoreQueue LSQ (
 	.clk(clk),
+	.reset(reset),
 	.LoadStore(LoadStore && is_issue_instruction_valid),
 	.RegWrite(RegWrite),
 	.ROB_index(ROB_num),

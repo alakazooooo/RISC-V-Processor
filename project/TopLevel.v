@@ -167,7 +167,6 @@ module TopLevel (
     .FU1_ready(FU1_ready),
     .FU2_ready(FU2_ready),
     .FU3_ready(FU3_ready),
-
     .wakeup_1_valid(wakeup_0_valid), 
     .wakeup_2_valid(wakeup_1_valid), 
     .wakeup_3_valid(wakeup_2_valid), 

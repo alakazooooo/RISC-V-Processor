@@ -1,6 +1,7 @@
 
 module Decode(
 	input wire clk,
+	input reset,
 	input is_input_valid,
 	input wire [31:0] instruction,
 	output reg is_instruction_valid,
@@ -47,19 +48,25 @@ module Decode(
 	assign func3_next = instruction[14:12];
 	
 
-always @(posedge clk) begin
-	is_instruction_valid <= is_input_valid;
-	opcode <= opcode_next;
-	rd <= rd_next;
-	rs1 <= rs1_next;
-	rs2 <= rs2_next;
-	func3 <= func3_next;
-	imm <= imm_next;
-	LoadStore <= LoadStore_next;
-	ALUSrc <= ALUSrc_next;
-	RegWrite <= RegWrite_next;
-	ALUControl <= ALUControl_next;
-	BMS <= BMS_next;
+always @(posedge clk or posedge reset) begin
+
+	if (reset) begin
+		is_instruction_valid <= 0;
+	end
+	else begin
+		is_instruction_valid <= is_input_valid;
+		opcode <= opcode_next;
+		rd <= rd_next;
+		rs1 <= rs1_next;
+		rs2 <= rs2_next;
+		func3 <= func3_next;
+		imm <= imm_next;
+		LoadStore <= LoadStore_next;
+		ALUSrc <= ALUSrc_next;
+		RegWrite <= RegWrite_next;
+		ALUControl <= ALUControl_next;
+		BMS <= BMS_next;
+	end
 end
 
 

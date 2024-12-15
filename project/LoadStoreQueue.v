@@ -3,6 +3,7 @@
 
 module LoadStoreQueue (
 	input clk,
+	input reset,
 	input LoadStore, //1=Load/Store, 0=other
 	input RegWrite, //1=load, 0=store
 	input [5:0] ROB_index, //ROB index of input instruction
@@ -37,11 +38,11 @@ module LoadStoreQueue (
 	output reg [5:0] completed_ROB_index, //ROB index of L/S instructions that should be retired
 	output reg completed_valid
 	);
-
+	
 	//TODO:
 	//Inputs and outputs to memory module
 	//handling load instruction that can't find matching store value (need to access memory)
-	//handling retiring
+	//handling retiring DONE
 	//handling LB and SB stuff
 	//load LSQ miss (send to memory)
 	
@@ -136,105 +137,114 @@ module LoadStoreQueue (
 	end
 	
 	
-	always @ (posedge clk) begin
-	
-		forward_rd_valid = 0;
-		completed_valid = 0;
-		foundStore = 0;
-		
-		//new instruction
-		if (LoadStore) begin //add new instruction into 
-			LSQ[LSQ_tail][0] = RegWrite; //Load or Store
-			LSQ[LSQ_tail][1] = BMS; //Byte or Word
-			LSQ[LSQ_tail][2] = 1'b0; //memory ready
-			LSQ[LSQ_tail][34:3] = 32'd0; //memory address
-			LSQ[LSQ_tail][40:35] = ROB_index;
-			LSQ[LSQ_tail][46:41] = store_rs2_tag;
-			LSQ[LSQ_tail][47] = store_rs2_ready;
-			LSQ[LSQ_tail][79:48] = store_rs2_value;
-			LSQ[LSQ_tail][85:80] = load_rd_tag;
-			LSQ[LSQ_tail][86] = 0; //rd ready
-			LSQ[LSQ_tail][118:87] = 32'd0; //rd value (load)
-			LSQ[LSQ_tail][119] = 1'b1; //valid entry
-			LSQ[LSQ_tail][120] = 1'b0; //stall
-			LSQ[LSQ_tail][121] = 1'b0; //forwarded
-			LSQ[LSQ_tail][122] = 1'b0; //complete
-			LSQ[LSQ_tail][123] = 1'b0; //complete sent to ROB
-			
-			LSQ_tail = (LSQ_tail < LSQ_SIZE - 1) ? (LSQ_tail + 4'd1) : 4'd0;
-			LSQ_count = LSQ_count + 5'd1;
-			
-			$display("added instruction to LSQ");
+	always @ (posedge clk or posedge reset) begin
+		if (reset) begin
+			for (i = 0; i < LSQ_SIZE; i = i + 1) begin
+				LSQ[i] = 0;
+			end
+			forward_rd_valid = 0;
+			completed_valid = 0;
+			foundStore = 0;
 		end
-		
-		
-		//Input FU outputted addresses in LSQ, and search for load values from existing stores
-		for (FU_num = 0; FU_num < 3; FU_num = FU_num + 1) begin //check outputs of each FU
-			LSQ_update_index = 0;
-			if(wakeup_valids[FU_num] || FU_address_valids[FU_num]) begin
-				for (i = 0; i < LSQ_SIZE; i = i + 1) begin //search entire LSQ
-					if (FU_address_valids[FU_num]) begin //if FU has address for LSQ
-						if (LSQ[i][119]) begin
-							if (LSQ[i][40:35] == FU_ROBs[FU_num] && LSQ_update_index == 0) begin //Find the right instruction
-								LSQ[i][34:3] = FU_addresses[FU_num];
-								LSQ[i][2] = 1; //address now valid
-								LSQ_update_index = i;
-								$display("FORWARDED address from FU to LSQ");
-								if (~LSQ[i][0]) begin //STORE
-									LSQ[i][122] = 1; //store complete
-								end
-								else if (LSQ[i][0]) begin //LOAD
-									for (j = 0; j < LSQ_SIZE; j = j + 1) begin //search for matching address
-										index = (LSQ_head + j) % LSQ_SIZE; //start at head index
-										search_size = (LSQ_head < i) ? (i - LSQ_head) : (i + LSQ_SIZE - LSQ_head);
-										if(~foundStore && j < search_size && LSQ[index][119]) begin //search from LSQ_head to i
-											if (LSQ[index][34:3] == FU_addresses[FU_num] && ~LSQ[index][0]) begin //found matching address store
-												if (LSQ[index][47]) begin//if store value ready
-													LSQ[i][118:87] = LSQ[index][79:48]; //forward value from store to load
-													LSQ[i][86] = 1; //rd ready
-													foundStore = 1;
+		else begin
+			forward_rd_valid = 0;
+			completed_valid = 0;
+			foundStore = 0;
+			
+			//new instruction
+			if (LoadStore) begin //add new instruction into 
+				LSQ[LSQ_tail][0] = RegWrite; //Load or Store
+				LSQ[LSQ_tail][1] = BMS; //Byte or Word
+				LSQ[LSQ_tail][2] = 1'b0; //memory ready
+				LSQ[LSQ_tail][34:3] = 32'd0; //memory address
+				LSQ[LSQ_tail][40:35] = ROB_index;
+				LSQ[LSQ_tail][46:41] = store_rs2_tag;
+				LSQ[LSQ_tail][47] = store_rs2_ready;
+				LSQ[LSQ_tail][79:48] = store_rs2_value;
+				LSQ[LSQ_tail][85:80] = load_rd_tag;
+				LSQ[LSQ_tail][86] = 0; //rd ready
+				LSQ[LSQ_tail][118:87] = 32'd0; //rd value (load)
+				LSQ[LSQ_tail][119] = 1'b1; //valid entry
+				LSQ[LSQ_tail][120] = 1'b0; //stall
+				LSQ[LSQ_tail][121] = 1'b0; //forwarded
+				LSQ[LSQ_tail][122] = 1'b0; //complete
+				LSQ[LSQ_tail][123] = 1'b0; //complete sent to ROB
+				
+				LSQ_tail = (LSQ_tail < LSQ_SIZE - 1) ? (LSQ_tail + 4'd1) : 4'd0;
+				LSQ_count = LSQ_count + 5'd1;
+				
+				$display("added instruction to LSQ");
+			end
+			
+			
+			//Input FU outputted addresses in LSQ, and search for load values from existing stores
+			for (FU_num = 0; FU_num < 3; FU_num = FU_num + 1) begin //check outputs of each FU
+				LSQ_update_index = 0;
+				if(wakeup_valids[FU_num] || FU_address_valids[FU_num]) begin
+					for (i = 0; i < LSQ_SIZE; i = i + 1) begin //search entire LSQ
+						if (FU_address_valids[FU_num]) begin //if FU has address for LSQ
+							if (LSQ[i][119]) begin
+								if (LSQ[i][40:35] == FU_ROBs[FU_num] && LSQ_update_index == 0) begin //Find the right instruction
+									LSQ[i][34:3] = FU_addresses[FU_num];
+									LSQ[i][2] = 1; //address now valid
+									LSQ_update_index = i;
+									$display("FORWARDED address from FU to LSQ");
+									if (~LSQ[i][0]) begin //STORE
+										LSQ[i][122] = 1; //store complete
+									end
+									else if (LSQ[i][0]) begin //LOAD
+										for (j = 0; j < LSQ_SIZE; j = j + 1) begin //search for matching address
+											index = (LSQ_head + j) % LSQ_SIZE; //start at head index
+											search_size = (LSQ_head < i) ? (i - LSQ_head) : (i + LSQ_SIZE - LSQ_head);
+											if(~foundStore && j < search_size && LSQ[index][119]) begin //search from LSQ_head to i
+												if (LSQ[index][34:3] == FU_addresses[FU_num] && ~LSQ[index][0]) begin //found matching address store
+													if (LSQ[index][47]) begin//if store value ready
+														LSQ[i][118:87] = LSQ[index][79:48]; //forward value from store to load
+														LSQ[i][86] = 1; //rd ready
+														foundStore = 1;
+														
+														forward_rd_value = LSQ[i][118:87];
+														forward_rd_tag = LSQ[i][85:80];
+														LSQ[i][121] = 1;
+														forward_rd_valid = 1;
+														LSQ[i][122] = 1; //load complete
+														$display("found matching store, FORWARDING from store to load");
+													end
+													else begin //need to stall load until value ready
+														LSQ[i][120] = 1; //stall flag
+														$display("found matching store, STALLING");
+													end
 													
-													forward_rd_value = LSQ[i][118:87];
-													forward_rd_tag = LSQ[i][85:80];
-													LSQ[i][121] = 1;
-													forward_rd_valid = 1;
-													LSQ[i][122] = 1; //load complete
-													$display("found matching store, FORWARDING from store to load");
 												end
-												else begin //need to stall load until value ready
-													LSQ[i][120] = 1; //stall flag
-													$display("found matching store, STALLING");
-												end
-												
 											end
 										end
+										if (~foundStore) begin //couldn't find matching store for load
+											//SEND TO MEMORY TODO
+											$display("LSQ miss, LOAD sent to mem");
+										end
 									end
-									if (~foundStore) begin //couldn't find matching store for load
-										//SEND TO MEMORY TODO
-										$display("LSQ miss, LOAD sent to mem");
-									end
-								end
-							end //end address ROB hit
-						end //end if valid
-					end //end if wakeup_valid
-					//wakeup store rs2 value 
-					if (wakeup_valids[FU_num]) begin 
-						if (LSQ[i][46:41] == wakeup_tags[FU_num] && LSQ_update_index == 0 && ~LSQ[i][0] && ~LSQ[i][47]) begin
-							LSQ_update_index = i;
-							LSQ[i][79:48] = wakeup_vals[FU_num];
-							LSQ[i][47] = 1;
-							$display("WAKEUP store rs2 value");
-							for (o = 0; o < LSQ_SIZE; o = o + 1) begin //search for stalled loads
-								if (LSQ[o][119] && LSQ[o][0] && LSQ[o][120] && LSQ[o][34:3] == LSQ[m][34:3]) begin
-									LSQ[o][118:87] = wakeup_vals[n];
-									LSQ[o][86] = 1;
-									if (~forward_rd_valid) begin
-										forward_rd_value = LSQ[o][118:87];
-										forward_rd_tag = LSQ[o][85:80];
-										LSQ[o][121] = 1;
-										forward_rd_valid = 1;
-										LSQ[o][123] = 1; //load complete
-										$display("FORWARDING store rs2 to STALLED load");
+								end //end address ROB hit
+							end //end if valid
+						end //end if wakeup_valid
+						//wakeup store rs2 value 
+						if (wakeup_valids[FU_num]) begin 
+							if (LSQ[i][46:41] == wakeup_tags[FU_num] && LSQ_update_index == 0 && ~LSQ[i][0] && ~LSQ[i][47]) begin
+								LSQ_update_index = i;
+								LSQ[i][79:48] = wakeup_vals[FU_num];
+								LSQ[i][47] = 1;
+								$display("WAKEUP store rs2 value");
+								for (o = 0; o < LSQ_SIZE; o = o + 1) begin //search for stalled loads
+									if (LSQ[o][119] && LSQ[o][0] && LSQ[o][120] && LSQ[o][34:3] == LSQ[m][34:3]) begin
+										LSQ[o][118:87] = wakeup_vals[n];
+										LSQ[o][86] = 1;
+										if (~forward_rd_valid) begin
+											forward_rd_value = LSQ[o][118:87];
+											forward_rd_tag = LSQ[o][85:80];
+											LSQ[o][121] = 1;
+											forward_rd_valid = 1;
+											LSQ[o][123] = 1; //load complete
+											$display("FORWARDING store rs2 to STALLED load");
+										end
 									end
 								end
 							end
@@ -242,57 +252,60 @@ module LoadStoreQueue (
 					end
 				end
 			end
-		end
-		
-		
-		//forward logic
-		if (~forward_rd_valid) begin //if haven't forwarded anything yet
-		
-			for (p = 0; p < LSQ_SIZE; p = p + 1) begin
-				index3 = (LSQ_head + p) % LSQ_SIZE; //start at head index
-				if (~forward_rd_valid && LSQ[p][119] && LSQ[p][0] && ~LSQ[p][121] && LSQ[p][86]) begin
-					forward_rd_value = LSQ[p][118:87];
-					forward_rd_tag = LSQ[p][85:80];
-					LSQ[p][121] = 1;
-					LSQ[p][122] = 1;
+			
+			
+			//forward logic
+			if (~forward_rd_valid) begin //if haven't forwarded anything yet
+			
+				for (p = 0; p < LSQ_SIZE; p = p + 1) begin
+					index3 = (LSQ_head + p) % LSQ_SIZE; //start at head index
+					if (~forward_rd_valid && LSQ[p][119] && LSQ[p][0] && ~LSQ[p][121] && LSQ[p][86]) begin
+						forward_rd_value = LSQ[p][118:87];
+						forward_rd_tag = LSQ[p][85:80];
+						LSQ[p][121] = 1;
+						LSQ[p][122] = 1;
+					end
 				end
 			end
-		end
-		
-		
-		//completing/retiring instructions
+			
+			
+			//completing/retiring instructions
 
-		for (x = 0; x < LSQ_SIZE; x = x + 1) begin //search for matching address
-			index2 = (LSQ_head + x) % LSQ_SIZE; //start at head index
-			if (x < LSQ_count && LSQ[x][119]) begin
-				if (LSQ[x][40:35] == retire_ROB_index_1 || LSQ[x][40:35] == retire_ROB_index_2) begin //found retired LS
-					if (LSQ[x][0]) begin //LOAD
-						LSQ[x] = 0;
-						LSQ_count = LSQ_count - 5'd1;
+			for (x = 0; x < LSQ_SIZE; x = x + 1) begin //search for matching address
+				index2 = (LSQ_head + x) % LSQ_SIZE; //start at head index
+				if (x < LSQ_count && LSQ[index2][119]) begin
+					if (LSQ[index2][40:35] == retire_ROB_index_1 || LSQ[index2][40:35] == retire_ROB_index_2) begin //found retired LS
+						if (LSQ[index2][0]) begin //LOAD
+							LSQ[index2] = 0;
+							LSQ_count = LSQ_count - 5'd1;
+							$display("Retired LOAD");
+						end
+						else if (~LSQ[index2][0]) begin //STORE
+							//SEND TO MEMORY TODO
+							$display("Retired STORE and sent to mem");
+						end
 					end
-					else if (~LSQ[x][0]) begin //STORE
-						//SEND TO MEMORY TODO
-						$display("Retired STORE and sent to mem");
+					if (~completed_valid && LSQ[index2][122] && ~LSQ[index2][123]) begin //found LS that can be completed
+						completed_valid = 1;
+						completed_ROB_index = LSQ[index2][40:35];
+						LSQ[index2][123] = 1;
+						$display("sent COMPLETED LS to ROB");
 					end
-				end
-				if (~completed_valid && LSQ[x][122] && ~LSQ[x][123]) begin //found LS that can be completed
-					completed_valid = 1;
-					completed_ROB_index = LSQ[x][40:35];
-					LSQ[x][123] = 1;
-					$display("sent COMPLETED LS to ROB");
 				end
 			end
-		end
+			
+			
+			
+			$display("LSQ Entry 0: %0b", LSQ[0]);
+			$display("LSQ Entry 1: %0b", LSQ[1]);
+			$display("LSQ Entry 2: %0b", LSQ[2]);
+			$display("LSQ Entry 3: %0b", LSQ[3]);
+			$display("LSQ Entry 4: %0b", LSQ[4]);
+			$display("LSQ Entry 5: %0b", LSQ[5]);
+			$display("LSQ Entry 6: %0b", LSQ[6]);
 		
+		end //not reset end
 		
-		
-		$display("LSQ Entry 0: %0b", LSQ[0]);
-		$display("LSQ Entry 1: %0b", LSQ[1]);
-		$display("LSQ Entry 2: %0b", LSQ[2]);
-		$display("LSQ Entry 3: %0b", LSQ[3]);
-		$display("LSQ Entry 4: %0b", LSQ[4]);
-	
-	
 	
 	end
 	

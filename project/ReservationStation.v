@@ -47,7 +47,7 @@ module ReservationStation (
     reg [5:0] free_slot;
     reg [ENTRY_WIDTH-1:0] entry;
     reg [1:0] issue_counter;
-    wire [2:0] fu_ready; //problems?
+    reg [2:0] fu_ready; //problems?
     reg entry_fu_ready;
     reg [2:0] issue_FU_valid;
 	 reg [23:0] wakeup_tags;

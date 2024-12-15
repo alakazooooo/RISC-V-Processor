@@ -149,8 +149,6 @@ module TopLevel (
   ReservationStation RS (
     .clk(clk),
     .reset(reset),
-	 // TODO add a new input (like the ROB's enqueue_enable) that controls whether
-	 // we enqueue to the RS on this cycle or not. Pass is_issue_instruction_valid to that input.
     .physical_rd(physical_rd),
     .physical_rs1(physical_rs1),
     .physical_rs2(physical_rs2),
@@ -159,7 +157,7 @@ module TopLevel (
     .rs1_value(rs1_value),
     .rs2_value(rs2_value),
     .ROB_num(ROB_num),
-    .load_into_RS(1), //placeholder rn
+    .load_into_RS(is_issue_instruction_valid),
     .ALUControl(ALUControl),
     .imm(imm),
     .LoadStore(LoadStore),

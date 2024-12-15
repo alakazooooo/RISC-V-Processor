@@ -219,6 +219,7 @@ module TopLevel (
 	// Reorder Buffer:
 	ReorderBuffer rob(
 		.clk(clk),
+		.reset(reset),
 		.enqueue_enable(is_issue_instruction_valid),
 		.enqueue_old_tag(old_physical_rd),
 		.wakeup_0_active(wakeup_0_valid), .wakeup_0_rob_index(wakeup_0_rob_index),

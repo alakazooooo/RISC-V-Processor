@@ -46,6 +46,7 @@
 
 module ReorderBuffer(
   input clk,
+  input reset,
   input enqueue_enable, input [5:0] enqueue_old_tag,
   input wakeup_0_active, wakeup_1_active, wakeup_2_active, wakeup_3_active,
   input [5:0] wakeup_0_rob_index, wakeup_1_rob_index, wakeup_2_rob_index, wakeup_3_rob_index,
@@ -62,8 +63,8 @@ module ReorderBuffer(
 	// (inclusive) to tail (exclusive), wrapping around, are valid.
 	// ROB entries are tuples ([6:1] old destination tag of this instruction, [0:0] is completed)
 	reg [6+1-1:0] rob [ROB_SIZE-1:0];
-	reg [6:0] rob_count = 0;
-	reg [5:0] rob_tail = 0;
+	reg [6:0] rob_count;
+	reg [5:0] rob_tail;
 	wire [5:0] rob_head = rob_tail >= rob_count ? (rob_tail - rob_count) : (ROB_SIZE - rob_count + rob_tail);
 	
 	assign next_rob_index = rob_tail;
@@ -90,25 +91,32 @@ module ReorderBuffer(
 	assign freed_tag_1 = num_retirable_entries >= 1 ? `OLD_TAG_PART(rob[rob_head]) : 6'd0;
 	assign freed_tag_2 = num_retirable_entries >= 2 ? `OLD_TAG_PART(rob[rob_next_after_head]) : 6'd0;
 	
-	always @(posedge clk) begin
-		if (wakeup_0_active) begin
-			`do_wakeup_for(wakeup_0_rob_index)
+	always @(posedge clk or posedge reset) begin
+		if (reset) begin
+			rob_count <= 0;
+			rob_tail <= 0;
+			// Resetting the rob entries themselves is not needed because only elements
+			// that are between rob_head and rob_tail are looked at.
+		end else begin
+			if (wakeup_0_active) begin
+				`do_wakeup_for(wakeup_0_rob_index)
+			end
+			if (wakeup_1_active) begin
+				`do_wakeup_for(wakeup_1_rob_index)
+			end
+			if (wakeup_2_active) begin
+				`do_wakeup_for(wakeup_2_rob_index)
+			end
+			if (wakeup_3_active) begin
+				`do_wakeup_for(wakeup_3_rob_index)
+			end
+			
+			if (enqueue_enable) begin
+				rob[rob_tail] <= {enqueue_old_tag, 1'b0};
+				rob_tail <= (rob_tail < ROB_SIZE - 1) ? (rob_tail + 6'd1) : 6'd0;
+			end
+			rob_count <= rob_count - num_retirable_entries + enqueue_enable;
 		end
-		if (wakeup_1_active) begin
-			`do_wakeup_for(wakeup_1_rob_index)
-		end
-		if (wakeup_2_active) begin
-			`do_wakeup_for(wakeup_2_rob_index)
-		end
-		if (wakeup_3_active) begin
-			`do_wakeup_for(wakeup_3_rob_index)
-		end
-		
-		if (enqueue_enable) begin
-			rob[rob_tail] <= {enqueue_old_tag, 1'b0};
-			rob_tail <= (rob_tail < ROB_SIZE - 1) ? (rob_tail + 6'd1) : 6'd0;
-		end
-		rob_count <= rob_count - num_retirable_entries + enqueue_enable;
 	end
 	
 	// Invariants:

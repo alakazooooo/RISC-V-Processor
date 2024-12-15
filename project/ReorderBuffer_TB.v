@@ -9,6 +9,7 @@ end #0
 module ReorderBuffer_TB(clk);
 	
 	output reg clk = 0;
+	reg reset = 0;
 	reg wakeup_active = 0;
 	reg enqueue_enable = 0;
 	reg [5:0] wakeup_rob_index = 0;
@@ -19,6 +20,7 @@ module ReorderBuffer_TB(clk);
 	
 	ReorderBuffer #(.ROB_SIZE(4)) uut(
 		.clk(clk),
+		.reset(reset),
 		.enqueue_enable(enqueue_enable), .enqueue_old_tag(enqueue_old_tag),
 		.wakeup_0_active(wakeup_active),
 		.wakeup_0_rob_index(wakeup_rob_index),
@@ -32,7 +34,10 @@ module ReorderBuffer_TB(clk);
 	initial begin : tb
 		reg [5:0] rob_indices [3:0];
 		integer i, j;
-	
+		
+		reset = 1;
+		#1;
+		reset = 0;
 		clk = 0;
 		#1;
 		clk = 1;

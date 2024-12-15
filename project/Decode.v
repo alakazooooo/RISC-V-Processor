@@ -99,7 +99,7 @@ always @(*) begin
 			RegWrite_next = 1;
 			BMS_next = 0;
 			
-			if(func3_next == 000) 
+			if(func3_next == 3'b000) 
 				ALUControl_next = 4'b0010; //ADD
 			else
 				ALUControl_next = 4'b0011; //XOR
@@ -109,7 +109,7 @@ always @(*) begin
 			rd_next = rd_temp;
 			rs1_next = rs1_temp;
 			rs2_next = 0;
-			if(func3_next == 101) //SRAI
+			if(func3_next == 3'b101) //SRAI
 				imm_next = {27'b0, imm_i[4:0]}; 
 			else //ADDI, ORI, LB, LW
 				imm_next = {{20{imm_i[11]}}, imm_i};
@@ -120,9 +120,9 @@ always @(*) begin
 			BMS_next = 0;
 
 			
-			if(func3_next == 000) begin
+			if(func3_next == 3'b000) begin
 				ALUControl_next = 4'b0010; //ADDI
-			end else if(func3_next == 110) begin
+			end else if(func3_next == 3'b110) begin
 				ALUControl_next = 4'b0001; //ORI
 			end else begin
 				ALUControl_next = 4'b1011; //SRAI
@@ -139,7 +139,7 @@ always @(*) begin
 			ALUSrc_next = 1;
 			RegWrite_next = 1;
 			
-			if(func3 == 000) begin
+			if(func3_next == 0) begin
 				BMS_next = 1;
 			end else begin
 				BMS_next = 0;
@@ -158,7 +158,7 @@ always @(*) begin
 			ALUSrc_next = 1;
 			RegWrite_next = 0;
 			
-			if(func3 == 000) begin
+			if(func3_next == 0) begin
 				BMS_next = 1;
 			end else begin
 				BMS_next = 0;

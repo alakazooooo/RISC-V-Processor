@@ -159,6 +159,7 @@ module TopLevel (
     .rs1_value(rs1_value),
     .rs2_value(rs2_value),
     .ROB_num(ROB_num),
+    .load_into_RS(1), //placeholder rn
     .ALUControl(ALUControl),
     .imm(imm),
     .LoadStore(LoadStore),

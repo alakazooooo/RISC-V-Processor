@@ -93,6 +93,7 @@ module TopLevel (
   
   wire [5:0] freed_tag_1, freed_tag_2;
   wire [5:0] physical_rd, physical_rs1, physical_rs2;
+  wire [5:0] old_physical_rd;
   wire rs1_ready, rs2_ready;
   wire [31:0] rs1_value, rs2_value;
   wire wakeup_1_valid; 
@@ -125,6 +126,7 @@ module TopLevel (
 	 .physical_rd(physical_rd),
 	 .physical_rs1(physical_rs1),
 	 .physical_rs2(physical_rs2),
+	 .old_physical_rd(old_physical_rd),
 	 .rs1_ready(rs1_ready),
 	 .rs2_ready(rs2_ready),
 	 .rs1_value(rs1_value),
@@ -216,8 +218,7 @@ module TopLevel (
 	ReorderBuffer rob(
 		.clk(clk),
 		.enqueue_enable(is_issue_instruction_valid),
-		.enqueue_old_tag(0), // TODO Rename needs to output the tag that rd previously mapped to before Rename
-		// allocated a new tag, or 0 if Rename didn't allocate a new tag.
+		.enqueue_old_tag(old_physical_rd),
 		.wakeup_0_active(wakeup_0_valid), .wakeup_0_rob_index(wakeup_0_rob_index),
 		.wakeup_1_active(wakeup_1_valid), .wakeup_1_rob_index(wakeup_1_rob_index),
 		.wakeup_2_active(wakeup_2_valid), .wakeup_2_rob_index(wakeup_2_rob_index),

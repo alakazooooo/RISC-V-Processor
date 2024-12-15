@@ -15,7 +15,7 @@ module Rename_TB(clk);
 	reg [31:0] wakeup_0_value = 0;
 	reg [4:0] architectural_rd = 0, architectural_rs1 = 0, architectural_rs2 = 0;
 	
-	wire [5:0] physical_rd, physical_rs1, physical_rs2;
+	wire [5:0] physical_rd, physical_rs1, physical_rs2, old_physical_rd;
 	wire rs1_ready, rs2_ready;
 	wire [31:0] rs1_value, rs2_value;
 	
@@ -37,6 +37,7 @@ module Rename_TB(clk);
 		.physical_rd(physical_rd),
 		.physical_rs1(physical_rs1),
 		.physical_rs2(physical_rs2),
+		.old_physical_rd(old_physical_rd),
 		.rs1_ready(rs1_ready),
 		.rs2_ready(rs2_ready),
 		.rs1_value(rs1_value),
@@ -58,7 +59,7 @@ module Rename_TB(clk);
 		#1;
 		// add x1, x0, x1
 		// We'll consider the destination here to be the "first" x1,
-		// which I guess makes its initial value of 0 the 0th x1.
+		// which I guess makes its initial value of p1 the 0th x1.
 		architectural_rd = 1;
 		architectural_rs1 = 0;
 		architectural_rs2 = 1;
@@ -80,6 +81,7 @@ module Rename_TB(clk);
 		// The x1 rd on the previous cycle is the x1 source for the current one.
 		`assert(physical_rs2 == first_x1_tag);
 		`assert(physical_rd != first_x1_tag);
+		`assert(old_physical_rd == first_x1_tag);
 		`assert(rs1_ready && rs1_value == 0);
 		`assert(!rs2_ready);
 		
@@ -97,6 +99,7 @@ module Rename_TB(clk);
 		wakeup_0_value = 123;
 		#1;
 		`assert(physical_rs2 == second_x1_tag);
+		`assert(old_physical_rd == 0);
 		`assert(rs1_ready && rs1_value == 0);
 		`assert(!rs2_ready); // rs2 will be ready when the *second* add completes.
 		
@@ -114,6 +117,7 @@ module Rename_TB(clk);
 		wakeup_0_value = 456;
 		#1;
 		`assert(physical_rs2 == second_x1_tag);
+		`assert(old_physical_rd == 0);
 		`assert(rs1_ready && rs1_value == 0);
 		`assert(rs2_ready && rs2_value == 456); // The value should be ready even on the same cycle the wakeup is happening.
 		
@@ -128,6 +132,7 @@ module Rename_TB(clk);
 		wakeup_0_active = 0;
 		#1;
 		`assert(physical_rs2 == second_x1_tag);
+		`assert(old_physical_rd == 0);
 		`assert(rs1_ready && rs1_value == 0);
 		`assert(rs2_ready && rs2_value == 456); // It should remain ready thereafter.
 		

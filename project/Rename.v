@@ -23,6 +23,10 @@ module Rename(
   input [4:0] architectural_rd, architectural_rs1, architectural_rs2,
 
   output wire [5:0] physical_rd, physical_rs1, physical_rs2,
+  // The previous tag for architectural_rd. It should be returned to the free pool (by
+  // being the value of freed_tag_1 or freed_tag_2 on a future cycle) when this instruction
+  // is retired by the ROB.
+  output wire [5:0] old_physical_rd,
   // The values of rs1 and rs2, if they are present in the ARAT.
   // If rs1_ready (resp. rs2_ready) is 0, its value is not known by Rename yet;
   // it should be broadcasted from the FUs on a future cycle.
@@ -41,6 +45,11 @@ module Rename(
 	// ([38:33] most recent physical register, [32:1] value, [0:0] is ready)
 	// where "is ready" means whether the value is up-to-date or if it's still pending broadcast from a FU.
 	reg [6+32+1-1:0] arat [31:0];
+	// Like the A-RAT this is indexed by architectural register. It holds the
+	// value on the previous cycle of the A-RAT tag mapping. It is used so that
+	// on cycles when we allocate a new tag, we can set the old_physical_rd output.
+	reg [5:0] physical_registers_buffer [31:0];
+	assign old_physical_rd = architectural_rd == 0 ? 6'd0 : physical_registers_buffer[architectural_rd];
 	
 	assign physical_rs1 = `PHYSICAL_REGISTER_PART(arat[architectural_rs1]);
 	assign physical_rs2 = `PHYSICAL_REGISTER_PART(arat[architectural_rs2]);
@@ -106,6 +115,7 @@ module Rename(
 			
 			for (j = 0; j < NUM_ARCHITECTURAL_REGISTERS; j = j + 6'd1) begin
 				arat[j] = {j, 32'd0, 1'b1};
+				physical_registers_buffer[j] = j;
 			end
 		end else begin
 			// Invariant check: you can't double-free a tag.
@@ -130,6 +140,7 @@ module Rename(
 						$fatal("Rename needs a physical register but the free pool is empty.");
 					end
 					`PHYSICAL_REGISTER_PART(arat[architectural_rd]) <= free_pool[free_pool_count - 1];
+					physical_registers_buffer[architectural_rd] <= free_pool[free_pool_count - 1];
 					`READY_PART(arat[architectural_rd]) <= 1'b0;
 				end
 			end

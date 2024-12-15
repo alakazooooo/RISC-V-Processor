@@ -145,6 +145,8 @@ module LoadStoreQueue (
 			forward_rd_valid = 0;
 			completed_valid = 0;
 			foundStore = 0;
+			LSQ_count = 0;
+			LSQ_tail = 0;
 		end
 		else begin
 			forward_rd_valid = 0;

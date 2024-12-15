@@ -75,6 +75,7 @@ module TopLevel (
   //decode stage
   Decode decode (
   .clk(clk),
+  .reset(reset),
   .is_input_valid(!fetch_complete),
   .instruction(fetch_instruction),
   .is_instruction_valid(is_issue_instruction_valid),

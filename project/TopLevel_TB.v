@@ -34,7 +34,7 @@ module TopLevel_TB(
     wait(uut.fetch_complete);
 
     // End simulation
-    #100;
+    #500;
     $display("Simulation completed");
     $stop;
   end

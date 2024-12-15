@@ -48,10 +48,10 @@ module FunctionalUnit(
 	begin
 		case (ALUControl)
 			4'b0000: cycles_for_operation = 0; // NONE
-			4'b0001: cycles_for_operation = 1; // OR
-			4'b0010: cycles_for_operation = 2; // ADD
-			4'b0011: cycles_for_operation = 1; // XOR
-			4'b1011: cycles_for_operation = 4; // SRA (right arithmetic shift)
+			4'b0001: cycles_for_operation = 0; // OR 
+			4'b0010: cycles_for_operation = 0; // ADD 
+			4'b0011: cycles_for_operation = 0; // XOR
+			4'b1011: cycles_for_operation = 0; // SRA (right arithmetic shift)
 			4'b1111: cycles_for_operation = 0; // pass through RHS
 			default: cycles_for_operation = 0;
 		endcase

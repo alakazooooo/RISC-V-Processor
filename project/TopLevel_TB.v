@@ -26,7 +26,7 @@ module TopLevel_TB(
  
   initial begin
     reset = 1;
-    #100 reset = 0; 
+    #10 reset = 0; 
 
     // Wait for instruction fetch to complete
     wait(uut.fetch_complete);

@@ -134,7 +134,7 @@ module FunctionalUnit(
 			4'b1011: ; // SRA (right arithmetic shift)
 			4'b1111: ; // pass through RHS
 			default: begin
-				$fatal("Invalid ALUControl");
+				//$fatal("Invalid ALUControl");
 			end
 		endcase
 	end

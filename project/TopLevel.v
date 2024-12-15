@@ -296,9 +296,7 @@ module TopLevel (
 	);
   
   
-  
-  wire [2:0] FU_output = {wakeup_2_valid, wakeup_1_valid, wakeup_0_valid};
-  
+ 
   LoadStoreQueue LSQ (
 	.clk(clk),
 	.LoadStore(LoadStore),
@@ -309,13 +307,6 @@ module TopLevel (
 	.store_rs2_value(rs2_value),
 	.load_rd_tag(physical_rd),
 	.BMS(BMS),
-	.FU_output({FU_output}),
-	.FU_1_address(wakeup_0_val),
-	.FU_2_address(wakeup_1_val),
-	.FU_3_address(wakeup_2_val),
-	.FU_1_ROB_index(wakeup_0_rob_index),
-	.FU_2_ROB_index(wakeup_1_rob_index),
-	.FU_3_ROB_index(wakeup_2_rob_index),
 	.wakeup_1_valid(wakeup_0_valid),
 	.wakeup_2_valid(wakeup_1_valid),
 	.wakeup_3_valid(wakeup_2_valid),
@@ -325,6 +316,9 @@ module TopLevel (
 	.wakeup_1_val(wakeup_0_val),
 	.wakeup_2_val(wakeup_1_val),
 	.wakeup_3_val(wakeup_2_val),
+	.wakeup_1_ROB_index(wakeup_0_rob_index),
+	.wakeup_2_ROB_index(wakeup_1_rob_index),
+	.wakeup_3_ROB_index(wakeup_2_rob_index),
 	
 	.forward_rd_value(wakeup_3_val),
 	.forward_rd_tag(wakeup_3_tag),

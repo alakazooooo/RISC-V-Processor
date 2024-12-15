@@ -93,6 +93,7 @@ module TopLevel (
   );
   
   wire [5:0] freed_tag_1, freed_tag_2;
+  wire [5:0] freed_rob_1, freed_rob_2;
   wire [5:0] physical_rd, physical_rs1, physical_rs2;
   wire [5:0] old_physical_rd;
   wire rs1_ready, rs2_ready;
@@ -234,7 +235,9 @@ module TopLevel (
 
 		.next_rob_index(ROB_num),
 		.freed_tag_1(freed_tag_1),
-		.freed_tag_2(freed_tag_2)
+		.freed_tag_2(freed_tag_2),
+		.freed_rob_1(freed_rob_1),
+		.freed_rob_2(freed_rob_2)
 	);
 	
 	FunctionalUnit fu1(
@@ -319,6 +322,8 @@ module TopLevel (
 	.store_rs2_value(rs2_value),
 	.load_rd_tag(physical_rd),
 	.BMS(BMS),
+	.retire_ROB_index_1(freed_rob_1), //ROB index of retired instructions
+	.retire_ROB_index_2(freed_rob_2),
 	.FU_1_valid(lsq_wakeup_0_valid),
 	.FU_2_valid(lsq_wakeup_1_valid),
 	.FU_3_valid(lsq_wakeup_2_valid),

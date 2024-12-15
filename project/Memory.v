@@ -3,6 +3,7 @@
 
 module Memory (
 	input clk,
+	input reset,
 	input [31:0] address,
 	input [31:0] store_value,
 	input BMS,
@@ -77,6 +78,7 @@ module Memory (
 			load_store_out <= load_store_pipe[9];
 			valid_out <= 1;
 			if(load_store_pipe[9]) begin //perform LOAD
+				$display("Memory READ");
 				if(BMS_pipe[9]) begin
 					load_value_out <= main_memory[address_pipe[9]];
 				end else begin
@@ -89,6 +91,7 @@ module Memory (
 				main_memory[address_pipe[9]+1] <= store_data_pipe[9][15:8];
 				main_memory[address_pipe[9]+2] <= store_data_pipe[9][23:16];
 				main_memory[address_pipe[9]+3] <= store_data_pipe[9][31:24];
+				$display("Memory WRITE");
 			end
 		
 		end

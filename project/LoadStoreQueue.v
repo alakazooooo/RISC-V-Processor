@@ -48,7 +48,7 @@ module LoadStoreQueue (
 	
 	
 	parameter LSQ_SIZE = 16;
-	parameter LSQ_WIDTH = 124;
+	parameter LSQ_WIDTH = 125;
 	
 	reg [LSQ_WIDTH-1:0] LSQ [LSQ_SIZE-1:0];
 	reg [4:0] LSQ_count = 0;
@@ -147,11 +147,14 @@ module LoadStoreQueue (
 			foundStore = 0;
 			LSQ_count = 0;
 			LSQ_tail = 0;
+			mem_valid = 0;
 		end
+		
 		else begin
 			forward_rd_valid = 0;
 			completed_valid = 0;
 			foundStore = 0;
+			mem_valid = 0;
 			
 			//new instruction
 			if (LoadStore) begin //add new instruction into 
@@ -171,6 +174,7 @@ module LoadStoreQueue (
 				LSQ[LSQ_tail][121] = 1'b0; //forwarded
 				LSQ[LSQ_tail][122] = 1'b0; //complete
 				LSQ[LSQ_tail][123] = 1'b0; //complete sent to ROB
+				LSQ[LSQ_tail][124] = 1'b0; //send to memory
 				
 				LSQ_tail = (LSQ_tail < LSQ_SIZE - 1) ? (LSQ_tail + 4'd1) : 4'd0;
 				LSQ_count = LSQ_count + 5'd1;
@@ -222,7 +226,8 @@ module LoadStoreQueue (
 										end
 										if (~foundStore) begin //couldn't find matching store for load
 											//SEND TO MEMORY TODO
-											$display("LSQ miss, LOAD sent to mem");
+											$display("LSQ miss");
+											LSQ[i][124] = 1; //send to mem flag
 										end
 									end
 								end //end address ROB hit
@@ -271,7 +276,7 @@ module LoadStoreQueue (
 			end
 			
 			
-			//completing/retiring instructions
+			//completing/retiring/memory instructions
 
 			for (x = 0; x < LSQ_SIZE; x = x + 1) begin //search for matching address
 				index2 = (LSQ_head + x) % LSQ_SIZE; //start at head index
@@ -284,7 +289,8 @@ module LoadStoreQueue (
 						end
 						else if (~LSQ[index2][0]) begin //STORE
 							//SEND TO MEMORY TODO
-							$display("Retired STORE and sent to mem");
+							$display("Retired STORE");
+							LSQ[index2][124] = 1;
 						end
 					end
 					if (~completed_valid && LSQ[index2][122] && ~LSQ[index2][123]) begin //found LS that can be completed
@@ -293,6 +299,40 @@ module LoadStoreQueue (
 						LSQ[index2][123] = 1;
 						$display("sent COMPLETED LS to ROB");
 					end
+				end
+			end
+			
+			
+			
+			//memory access:
+			
+			for (m = 0; m < LSQ_SIZE; m = m + 1) begin
+				if (LSQ[m][119]) begin
+					if (LSQ[m][124] && ~mem_valid) begin
+						$display("LS sent to MEMORY");
+						mem_address = LSQ[m][34:3];
+						mem_BMS = LSQ[m][1];
+						mem_LS = LSQ[m][0];
+						mem_valid = 1;
+						if (LSQ[m][0]) begin //mem write
+							mem_store_value = LSQ[m][79:48];
+						end
+						LSQ[m][124] = 0;
+					end
+					
+					if (mem_valid_out) begin
+						if(LSQ[m][34:3] == mem_addr_out) begin
+							if (mem_LS_out && LSQ[m][0]) begin //Memory read finished
+								LSQ[m][118:87] = mem_load_value_out;
+								LSQ[m][86] = 1;
+							end
+							else if (~mem_LS_out && ~LSQ[m][0] && LSQ[m][122]) begin //memory write finished
+								LSQ[m] = 0;
+								LSQ_count = LSQ_count - 5'd1;
+							end
+						end
+					end
+				
 				end
 			end
 			
@@ -318,9 +358,9 @@ module LoadStoreQueue (
 	//Memory access
 	
 	
-	//Memory main_memory(clk, mem_address, mem_store_value, mem_BMS, 
-	//						mem_LS, mem_valid, mem_addr_out, mem_load_value_out, 
-	//						mem_LS_out, mem_valid_out);
+	Memory main_memory(clk, reset, mem_address, mem_store_value, mem_BMS, 
+							mem_LS, mem_valid, mem_addr_out, mem_load_value_out, 
+							mem_LS_out, mem_valid_out);
 	
 	
 	

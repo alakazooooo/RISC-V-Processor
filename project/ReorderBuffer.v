@@ -55,7 +55,8 @@ module ReorderBuffer(
   output wire [5:0] next_rob_index,
   // For returning between zero and two tags to Rename's free pool.
   // These will be 0 if not applicable, because Rename should ignore tag p0 being freed anyway.
-  output wire [5:0] freed_tag_1, freed_tag_2
+  output wire [5:0] freed_tag_1, freed_tag_2,
+  output wire [5:0] freed_rob_1, freed_rob_2
 );
 	parameter ROB_SIZE = 7'd64; // per the spec
 	
@@ -90,6 +91,10 @@ module ReorderBuffer(
 	
 	assign freed_tag_1 = num_retirable_entries >= 1 ? `OLD_TAG_PART(rob[rob_head]) : 6'd0;
 	assign freed_tag_2 = num_retirable_entries >= 2 ? `OLD_TAG_PART(rob[rob_next_after_head]) : 6'd0;
+	
+	assign freed_rob_1 = num_retirable_entries >= 1 ? rob_head : 6'd0;
+	assign freed_rob_2 = num_retirable_entries >= 2 ? rob_next_after_head : 6'd0;
+	
 	
 	always @(posedge clk or posedge reset) begin
 		if (reset) begin

@@ -11,7 +11,7 @@ module Fetch (
 	always @(posedge clk or posedge reset) begin
 		if (reset) begin
 			instruction <= 32'b0;
-			fetch_complete <= 1'b0;
+			fetch_complete <= 1'b1;
 		end else if (pc < rom_size) begin
 			// Fetch instruction from ROM
 			instruction <= instr_rom[pc * 8 +: 32];

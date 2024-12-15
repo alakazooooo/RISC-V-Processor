@@ -58,8 +58,8 @@ module TopLevel (
     .instruction(fetch_instruction),
     .fetch_complete(fetch_complete)
   );
-  
-  
+
+   wire is_issue_instruction_valid;
    wire [6:0] opcode;
 	wire [4:0] rd;
 	wire [4:0] rs1;            
@@ -75,7 +75,9 @@ module TopLevel (
   //decode stage
   Decode decode (
   .clk(clk),
+  .is_input_valid(!fetch_complete),
   .instruction(fetch_instruction),
+  .is_instruction_valid(is_issue_instruction_valid),
   .opcode(opcode),
   .rd(rd),
   .rs1(rs1),
@@ -116,6 +118,7 @@ module TopLevel (
 	 .wakeup_3_active(wakeup_3_valid), .wakeup_3_tag(wakeup_3_tag), .wakeup_3_value(wakeup_3_val),
 	 .freed_tag_1(freed_tag_1),
 	 .freed_tag_2(freed_tag_2),
+	 .is_instruction_valid(is_issue_instruction_valid),
 	 .architectural_rd(rd),
 	 .architectural_rs1(rs1),
 	 .architectural_rs2(rs2),
@@ -146,6 +149,8 @@ module TopLevel (
   ReservationStation RS (
     .clk(clk),
     .reset(reset),
+	 // TODO add a new input (like the ROB's enqueue_enable) that controls whether
+	 // we enqueue to the RS on this cycle or not. Pass is_issue_instruction_valid to that input.
     .physical_rd(physical_rd),
     .physical_rs1(physical_rs1),
     .physical_rs2(physical_rs2),
@@ -205,16 +210,15 @@ module TopLevel (
 	 .issue_2_alu_type(issue_2_alu_type)
   );
   
-  
-  wire enqueue_enable;
   wire [5:0] wakeup_0_rob_index, wakeup_1_rob_index, wakeup_2_rob_index;
   wire [5:0] enqueue_old_tag;
 	
 	// Reorder Buffer:
 	ReorderBuffer rob(
 		.clk(clk),
-		.enqueue_enable(0),
-		.enqueue_old_tag(0),
+		.enqueue_enable(is_issue_instruction_valid),
+		.enqueue_old_tag(0), // TODO Rename needs to output the tag that rd previously mapped to before Rename
+		// allocated a new tag, or 0 if Rename didn't allocate a new tag.
 		.wakeup_0_active(wakeup_0_valid), .wakeup_0_rob_index(wakeup_0_rob_index),
 		.wakeup_1_active(wakeup_1_valid), .wakeup_1_rob_index(wakeup_1_rob_index),
 		.wakeup_2_active(wakeup_2_valid), .wakeup_2_rob_index(wakeup_2_rob_index),
@@ -301,7 +305,7 @@ module TopLevel (
   
   LoadStoreQueue LSQ (
 	.clk(clk),
-	.LoadStore(LoadStore),
+	.LoadStore(LoadStore && is_issue_instruction_valid),
 	.RegWrite(RegWrite),
 	.ROB_index(ROB_num),
 	.store_rs2_tag(physical_rs2),

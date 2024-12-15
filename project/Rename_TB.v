@@ -30,6 +30,7 @@ module Rename_TB(clk);
 		.wakeup_3_active(0), .wakeup_3_tag(0), .wakeup_3_value(0),
 		.freed_tag_1(6'd0),
 		.freed_tag_2(6'd0),
+		.is_instruction_valid(1),
 		.architectural_rd(architectural_rd),
 		.architectural_rs1(architectural_rs1),
 		.architectural_rs2(architectural_rs2),

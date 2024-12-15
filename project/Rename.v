@@ -15,6 +15,11 @@ module Rename(
   // mapped-to by x0, and second because ReorderBuffer uses 0 to mean "not applicable" i.e.
   // not actually freed on this cycle.
   input [5:0] freed_tag_1, freed_tag_2,
+
+  // If !is_instruction_valid, the internal state of Rename (the ARAT and free pool)
+  // will not be modified on this clock cycle. But these outputs may take any value,
+  // so if !is_instruction_valid the outputs should be ignored.
+  input is_instruction_valid,
   input [4:0] architectural_rd, architectural_rs1, architectural_rs2,
 
   output wire [5:0] physical_rd, physical_rs1, physical_rs2,
@@ -115,16 +120,18 @@ module Rename(
 				end
 			end
 			
-			// An optimization (irrelevant to the project) would be to count the effect of adding freed tags
-			// *before* allocating a free tag for architectural_rd in the same cycle.
-			if (architectural_rd != 0) begin
-				if (free_pool_count == 0) begin
-					// The spec tells us we can assume rename never stalls. So if the free pool
-					// gets empty, we were either fed a bad instruction sequence or there's a bug.
-					$fatal("Rename needs a physical register but the free pool is empty.");
+			if (is_instruction_valid) begin
+				// An optimization (irrelevant to the project) would be to count the effect of adding freed tags
+				// *before* allocating a free tag for architectural_rd in the same cycle.
+				if (architectural_rd != 0) begin
+					if (free_pool_count == 0) begin
+						// The spec tells us we can assume rename never stalls. So if the free pool
+						// gets empty, we were either fed a bad instruction sequence or there's a bug.
+						$fatal("Rename needs a physical register but the free pool is empty.");
+					end
+					`PHYSICAL_REGISTER_PART(arat[architectural_rd]) <= free_pool[free_pool_count - 1];
+					`READY_PART(arat[architectural_rd]) <= 1'b0;
 				end
-				`PHYSICAL_REGISTER_PART(arat[architectural_rd]) <= free_pool[free_pool_count - 1];
-				`READY_PART(arat[architectural_rd]) <= 1'b0;
 			end
 			
 			if (freed_tag_1 != 0) begin

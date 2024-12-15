@@ -1,5 +1,6 @@
 
 module Decode_TB(
+	output wire is_decode_valid,
 	output wire [6:0] opcode,
 	output wire [4:0] rd,
 	output wire [4:0] rs1,            
@@ -10,17 +11,19 @@ module Decode_TB(
 	output wire ALUSrc,
 	output wire RegWrite,
 	output wire [3:0] ALUControl,
-	output wire BMS 
+	output wire BMS
 );
 
 
 
 reg clk = 1;
 reg [31:0] instruction;
+reg is_input_valid;
 
-Decode uut (.clk(clk), .instruction(instruction), .opcode(opcode), 
-.rd(rd), .rs1(rs1), .rs2(rs2), .imm(imm), .func3(func3), .LoadStore(LoadStore), 
-.ALUSrc(ALUSrc), .RegWrite(RegWrite), .ALUControl(ALUControl), .BMS(BMS));
+Decode uut (.clk(clk), .is_input_valid(is_input_valid), .instruction(instruction),
+.is_instruction_valid(is_decode_valid), .opcode(opcode), .rd(rd), .rs1(rs1), .rs2(rs2),
+.imm(imm), .func3(func3), .LoadStore(LoadStore), .ALUSrc(ALUSrc), .RegWrite(RegWrite),
+.ALUControl(ALUControl), .BMS(BMS));
 
 
 
@@ -49,7 +52,9 @@ reg [31:0] instruction_memory [0:4]; // Array to hold 8 instructions
         end
 
         @(posedge clk);
-        instruction = 32'h0; // Send no instruction (NOP or idle)
+		  // Send no instruction (NOP or idle)
+        is_input_valid = 0;
+		  instruction = 32'h0;
 
         #20 $stop;          // End simulation
     end

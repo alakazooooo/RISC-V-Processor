@@ -1,7 +1,9 @@
 
 module Decode(
 	input wire clk,
+	input is_input_valid,
 	input wire [31:0] instruction,
+	output reg is_instruction_valid,
 	output reg [6:0] opcode,
 	output reg[4:0] rd,
 	output reg [4:0] rs1,            
@@ -12,7 +14,7 @@ module Decode(
 	output reg ALUSrc,
 	output reg RegWrite,
 	output reg [3:0] ALUControl,
-	output reg BMS 
+	output reg BMS
 	
 );
 
@@ -46,6 +48,7 @@ module Decode(
 	
 
 always @(posedge clk) begin
+	is_instruction_valid <= is_input_valid;
 	opcode <= opcode_next;
 	rd <= rd_next;
 	rs1 <= rs1_next;

@@ -301,6 +301,8 @@ module LoadStoreQueue (
 			$display("LSQ Entry 2: %0b", LSQ[2]);
 			$display("LSQ Entry 3: %0b", LSQ[3]);
 			$display("LSQ Entry 4: %0b", LSQ[4]);
+			$display("LSQ Entry 5: %0b", LSQ[5]);
+			$display("LSQ Entry 6: %0b", LSQ[6]);
 		
 		end //not reset end
 		

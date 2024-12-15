@@ -215,6 +215,9 @@ module TopLevel (
   wire [31:0] lsq_wakeup_0_val, lsq_wakeup_1_val, lsq_wakeup_2_val;
   wire [5:0] lsq_wakeup_0_rob_index, lsq_wakeup_1_rob_index, lsq_wakeup_2_rob_index;
   wire lsq_wakeup_0_valid, lsq_wakeup_1_valid, lsq_wakeup_2_valid;
+
+  wire lsq_complete_valid;
+  wire [5:0] lsq_complete_rob_index;
 	
 	// Reorder Buffer:
 	ReorderBuffer rob(
@@ -225,7 +228,7 @@ module TopLevel (
 		.wakeup_1_active(wakeup_1_valid), .wakeup_1_rob_index(wakeup_1_rob_index),
 		.wakeup_2_active(wakeup_2_valid), .wakeup_2_rob_index(wakeup_2_rob_index),
 		// TODO wire up this fourth wakeup input to outputs of the LSQ
-		.wakeup_3_active(0), .wakeup_3_rob_index(0),
+		.wakeup_3_active(lsq_complete_valid), .wakeup_3_rob_index(lsq_complete_rob_index),
 
 		.next_rob_index(ROB_num),
 		.freed_tag_1(freed_tag_1),
@@ -332,11 +335,11 @@ module TopLevel (
 	.wakeup_1_val(lsq_wakeup_0_val), //or not? idk
 	.wakeup_2_val(lsq_wakeup_1_val),
 	.wakeup_3_val(lsq_wakeup_2_val),
-	.forward_rd_value(wakeup_3_val),
+	.forward_rd_value(wakeup_3_val), //to the RS
 	.forward_rd_tag(wakeup_3_tag),
-	.forward_rd_valid(wakeup_3_valid)
-	//.completed_ROB_index(),
-	//.completed_valid()
+	.forward_rd_valid(wakeup_3_valid),
+	.completed_ROB_index(lsq_complete_rob_index), //to the ROB
+	.completed_valid(lsq_complete_valid)
   );
   
   

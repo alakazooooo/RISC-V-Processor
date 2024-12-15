@@ -31,7 +31,10 @@ module Rename(
   // If rs1_ready (resp. rs2_ready) is 0, its value is not known by Rename yet;
   // it should be broadcasted from the FUs on a future cycle.
   output wire rs1_ready, rs2_ready,
-  output wire [31:0] rs1_value, rs2_value
+  output wire [31:0] rs1_value, rs2_value,
+  // These outputs give visibility into the A-RAT and are for running the demo.
+  output wire a0_ready, a1_ready,
+  output wire [31:0] a0_value, a1_value
 );
 	parameter FREE_POOL_SIZE = 6'd32;
 	parameter NUM_ARCHITECTURAL_REGISTERS = 6'd32;
@@ -54,6 +57,11 @@ module Rename(
 	assign physical_rs1 = `PHYSICAL_REGISTER_PART(arat[architectural_rs1]);
 	assign physical_rs2 = `PHYSICAL_REGISTER_PART(arat[architectural_rs2]);
 	assign physical_rd = architectural_rd == 0 ? 6'd0 : free_pool[free_pool_count - 6'd1];
+	
+	assign a0_ready = `READY_PART(arat[10]); // a0 is the ABI name for register x10
+	assign a0_value = `VALUE_PART(arat[10]);
+	assign a1_ready = `READY_PART(arat[11]); // a1 is the ABI name for register x11
+	assign a1_value = `VALUE_PART(arat[11]);
 	
 	wire any_wakeup_active = wakeup_0_active || wakeup_1_active || wakeup_2_active || wakeup_3_active;
 	
@@ -113,6 +121,7 @@ module Rename(
 			end
 			free_pool_count = FREE_POOL_SIZE;
 			
+			
 			for (j = 0; j < NUM_ARCHITECTURAL_REGISTERS; j = j + 6'd1) begin
 				arat[j] = {j, 32'd0, 1'b1};
 				physical_registers_buffer[j] = j;
@@ -147,13 +156,13 @@ module Rename(
 			
 			if (freed_tag_1 != 0) begin
 				// Be careful to count the effect of a possible previous pop from the free pool.
-				free_pool[free_pool_count - (architectural_rd != 0)] <= freed_tag_1;
+				free_pool[free_pool_count - (is_instruction_valid && architectural_rd != 0)] <= freed_tag_1;
 			end
 			if (freed_tag_2 != 0) begin
 				// Here too; there was a possible previous pop and a possible previous push.
-				free_pool[free_pool_count + (freed_tag_1 != 0) - (architectural_rd != 0)] <= freed_tag_2;
+				free_pool[free_pool_count + (freed_tag_1 != 0) - (is_instruction_valid && architectural_rd != 0)] <= freed_tag_2;
 			end
-			free_pool_count <= free_pool_count + (freed_tag_1 != 0) + (freed_tag_2 != 0) - (architectural_rd != 0);
+			free_pool_count <= free_pool_count + (freed_tag_1 != 0) + (freed_tag_2 != 0) - (is_instruction_valid && architectural_rd != 0);
 			
 			if (any_wakeup_active) begin : handle_wakeup
 				integer i;

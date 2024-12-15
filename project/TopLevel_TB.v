@@ -8,15 +8,17 @@ module TopLevel_TB(
   // Testbench signals
   reg clk = 0;
   reg reset;
-  wire [31:0] a0;
-  wire [31:0] a1;
+  wire a0_ready, a1_ready;
+  wire [31:0] a0_value, a1_value;
 
   // Instantiate the uut
   TopLevel uut (
     .clk(clk),
     .reset(reset),
-    .a0(a0),
-    .a1(a1)
+    .a0_ready(a0_ready),
+	 .a1_ready(a1_ready),
+	 .a0_value(a0_value),
+    .a1_value(a1_value)
   );
 
 

@@ -1,8 +1,8 @@
 module TopLevel (
   input wire clk,
   input wire reset,
-  output wire [31:0] a0,
-  output wire [31:0] a1
+  output wire a0_ready, a1_ready,
+  output wire [31:0] a0_value, a1_value
 );
 
 
@@ -131,8 +131,8 @@ module TopLevel (
 	 .rs1_ready(rs1_ready),
 	 .rs2_ready(rs2_ready),
 	 .rs1_value(rs1_value),
-	 .rs2_value(rs2_value)
-
+	 .rs2_value(rs2_value),
+	 .a0_ready(a0_ready), .a0_value(a0_value), .a1_ready(a1_ready), .a1_value(a1_value)
   );
   
   wire [5:0] ROB_num;

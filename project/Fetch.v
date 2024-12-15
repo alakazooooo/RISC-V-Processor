@@ -5,7 +5,8 @@ module Fetch (
 	input wire [31:0] rom_size,
 	input wire [8191:0] instr_rom, // The entire instruction memory as a single 8192-bit array
 	output reg [31:0] instruction,
-	output reg fetch_complete
+	output reg fetch_complete,
+	output reg fetch_in_progress
 );
 
 	always @(posedge clk or posedge reset) begin
@@ -16,6 +17,7 @@ module Fetch (
 			// Fetch instruction from ROM
 			instruction <= instr_rom[pc * 8 +: 32];
 			fetch_complete <= 1'b0;
+			fetch_in_progress <= 1'b1;
 		end else begin
 			instruction <= 32'b0;
 			fetch_complete <= 1'b1;

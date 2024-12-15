@@ -126,16 +126,16 @@ module FunctionalUnit(
 	// Invariants:
 	//  - ALUControl must encode a valid operation.
 	always @(posedge clk) begin : check_invariants
-		case (ALUControl)
-			4'b0000: ; // NONE
-			4'b0001: ; // OR
-			4'b0010: ; // ADD
-			4'b0011: ; // XOR
-			4'b1011: ; // SRA (right arithmetic shift)
-			4'b1111: ; // pass through RHS
-			default: begin
-				//$fatal("Invalid ALUControl");
+		if (write_enable) begin
+			if (ALUControl != 4'b0000 // NONE
+				&& ALUControl != 4'b0001 // OR
+				&& ALUControl != 4'b0010 // ADD
+				&& ALUControl != 4'b0011 // XOR
+				&& ALUControl != 4'b1011 // SRA
+				&& ALUControl != 4'b1111 // pass through RHS
+			) begin
+				$fatal("Invalid ALUControl");
 			end
-		endcase
+		end
 	end
 endmodule

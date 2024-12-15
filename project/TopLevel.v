@@ -58,8 +58,8 @@ module TopLevel (
     .instruction(fetch_instruction),
     .fetch_complete(fetch_complete)
   );
-  
-  
+
+   wire is_issue_instruction_valid;
    wire [6:0] opcode;
 	wire [4:0] rd;
 	wire [4:0] rs1;            
@@ -75,7 +75,9 @@ module TopLevel (
   //decode stage
   Decode decode (
   .clk(clk),
+  .is_input_valid(!fetch_complete),
   .instruction(fetch_instruction),
+  .is_instruction_valid(is_issue_instruction_valid),
   .opcode(opcode),
   .rd(rd),
   .rs1(rs1),
@@ -116,6 +118,7 @@ module TopLevel (
 	 .wakeup_3_active(wakeup_3_valid), .wakeup_3_tag(wakeup_3_tag), .wakeup_3_value(wakeup_3_val),
 	 .freed_tag_1(freed_tag_1),
 	 .freed_tag_2(freed_tag_2),
+	 .is_instruction_valid(is_issue_instruction_valid),
 	 .architectural_rd(rd),
 	 .architectural_rs1(rs1),
 	 .architectural_rs2(rs2),
@@ -154,6 +157,7 @@ module TopLevel (
     .rs1_value(rs1_value),
     .rs2_value(rs2_value),
     .ROB_num(ROB_num),
+    .load_into_RS(is_issue_instruction_valid),
     .ALUControl(ALUControl),
     .imm(imm),
     .LoadStore(LoadStore),
@@ -205,16 +209,18 @@ module TopLevel (
 	 .issue_2_alu_type(issue_2_alu_type)
   );
   
-  
-  wire enqueue_enable;
   wire [5:0] wakeup_0_rob_index, wakeup_1_rob_index, wakeup_2_rob_index;
   wire [5:0] enqueue_old_tag;
+  wire [31:0] lsq_wakeup_0_val, lsq_wakeup_1_val, lsq_wakeup_2_val;
+  wire [5:0] lsq_wakeup_0_rob_index, lsq_wakeup_1_rob_index, lsq_wakeup_2_rob_index;
+  wire lsq_wakeup_0_valid, lsq_wakeup_1_valid, lsq_wakeup_2_valid;
 	
 	// Reorder Buffer:
 	ReorderBuffer rob(
 		.clk(clk),
-		.enqueue_enable(0),
-		.enqueue_old_tag(0),
+		.enqueue_enable(is_issue_instruction_valid),
+		.enqueue_old_tag(0), // TODO Rename needs to output the tag that rd previously mapped to before Rename
+		// allocated a new tag, or 0 if Rename didn't allocate a new tag.
 		.wakeup_0_active(wakeup_0_valid), .wakeup_0_rob_index(wakeup_0_rob_index),
 		.wakeup_1_active(wakeup_1_valid), .wakeup_1_rob_index(wakeup_1_rob_index),
 		.wakeup_2_active(wakeup_2_valid), .wakeup_2_rob_index(wakeup_2_rob_index),
@@ -244,9 +250,9 @@ module TopLevel (
 		.wakeup_rob_index(wakeup_0_rob_index),
 		.wakeup_tag(wakeup_0_tag),
 		.wakeup_value(wakeup_0_val),
-		.lsq_wakeup_active(lsq_wakeup_active), //TODO
-		.lsq_wakeup_rob_index(lsq_wakeup_rob_index),
-		.lsq_wakeup_value(lsq_wakeup_value) //TODO: up to 3 lsq wakeup too?
+		.lsq_wakeup_active(lsq_wakeup_0_valid),
+		.lsq_wakeup_rob_index(lsq_wakeup_0_rob_index),
+		.lsq_wakeup_value(lsq_wakeup_0_val)
 	);
 	
 	FunctionalUnit fu2(
@@ -267,9 +273,9 @@ module TopLevel (
 		.wakeup_rob_index(wakeup_1_rob_index),
 		.wakeup_tag(wakeup_1_tag),
 		.wakeup_value(wakeup_1_val),
-		.lsq_wakeup_active(lsq_wakeup_active), //TODO
-		.lsq_wakeup_rob_index(lsq_wakeup_rob_index),
-		.lsq_wakeup_value(lsq_wakeup_value) //TODO: up to 3 lsq wakeup too?
+		.lsq_wakeup_active(lsq_wakeup_1_valid),
+		.lsq_wakeup_rob_index(lsq_wakeup_1_rob_index),
+		.lsq_wakeup_value(lsq_wakeup_1_val)
 	);
 	
 	FunctionalUnit fu3( //TODO: test/make fu1,2,3 parallel
@@ -290,16 +296,16 @@ module TopLevel (
 		.wakeup_rob_index(wakeup_2_rob_index),
 		.wakeup_tag(wakeup_2_tag),
 		.wakeup_value(wakeup_2_val),
-		.lsq_wakeup_active(lsq_wakeup_active), //TODO
-		.lsq_wakeup_rob_index(lsq_wakeup_rob_index),
-		.lsq_wakeup_value(lsq_wakeup_value) //TODO: up to 3 lsq wakeup too?
+		.lsq_wakeup_active(lsq_wakeup_2_valid),
+		.lsq_wakeup_rob_index(lsq_wakeup_2_rob_index),
+		.lsq_wakeup_value(lsq_wakeup_2_val)
 	);
   
   
  
   LoadStoreQueue LSQ (
 	.clk(clk),
-	.LoadStore(LoadStore),
+	.LoadStore(LoadStore && is_issue_instruction_valid),
 	.RegWrite(RegWrite),
 	.ROB_index(ROB_num),
 	.store_rs2_tag(physical_rs2),
@@ -307,23 +313,29 @@ module TopLevel (
 	.store_rs2_value(rs2_value),
 	.load_rd_tag(physical_rd),
 	.BMS(BMS),
-	.wakeup_1_valid(wakeup_0_valid),
-	.wakeup_2_valid(wakeup_1_valid),
-	.wakeup_3_valid(wakeup_2_valid),
+	.FU_1_valid(lsq_wakeup_0_active),
+	.FU_2_valid(lsq_wakeup_1_active),
+	.FU_3_valid(lsq_wakeup_2_active),
+	.FU_1_address(lsq_wakeup_0_val),
+	.FU_2_address(lsq_wakeup_1_val),
+	.FU_3_address(lsq_wakeup_2_val),
+	.FU_1_ROB_index(lsq_wakeup_0_rob_index),
+	.FU_2_ROB_index(lsq_wakeup_1_rob_index),
+	.FU_3_ROB_index(lsq_wakeup_2_rob_index),
+	.wakeup_1_valid(lsq_wakeup_0_valid),
+	.wakeup_2_valid(lsq_wakeup_1_valid),
+	.wakeup_3_valid(lsq_wakeup_2_valid),
 	.wakeup_1_tag(wakeup_0_tag),
 	.wakeup_2_tag(wakeup_1_tag),
 	.wakeup_3_tag(wakeup_2_tag),
-	.wakeup_1_val(wakeup_0_val),
-	.wakeup_2_val(wakeup_1_val),
-	.wakeup_3_val(wakeup_2_val),
-	.wakeup_1_ROB_index(wakeup_0_rob_index),
-	.wakeup_2_ROB_index(wakeup_1_rob_index),
-	.wakeup_3_ROB_index(wakeup_2_rob_index),
-	
+	.wakeup_1_val(lsq_wakeup_0_val), //or not? idk
+	.wakeup_2_val(lsq_wakeup_1_val),
+	.wakeup_3_val(lsq_wakeup_2_val),
 	.forward_rd_value(wakeup_3_val),
 	.forward_rd_tag(wakeup_3_tag),
 	.forward_rd_valid(wakeup_3_valid)
-	
+	//.completed_ROB_index(),
+	//.completed_valid()
   );
   
   

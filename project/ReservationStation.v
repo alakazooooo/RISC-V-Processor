@@ -7,6 +7,7 @@ module ReservationStation (
     input wire rs1_ready, rs2_ready,
     input wire [31:0] rs1_value, rs2_value,
     input wire [5:0] ROB_num,
+    input wire load_into_RS,
 
     //from decode
     input wire [3:0] ALUControl,
@@ -72,7 +73,7 @@ module ReservationStation (
 	end
 	endfunction
 
-    always @(posedge clk) begin
+    always @(posedge clk or posedge reset) begin
         if (reset) begin
             // Reset all registers
             {FU_num, count, valid_bitmap, issue_counter} <= 0;
@@ -92,7 +93,7 @@ module ReservationStation (
             fu_ready = {FU3_ready, FU2_ready, FU1_ready};
 
             // Add new instruction
-            if (count < RS_SIZE && ALUControl != 0) begin
+	    if (count < RS_SIZE && ALUControl != 0 && load_into_RS) begin
                 free_slot = find_free_slot(valid_bitmap);
                 
                 // Update FU_num based on ready status
